@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<!--
+  Это HTML-файл — он описывает СТРУКТУРУ страницы (что где находится).
+  Как страница выглядит — описано в файле style.css.
+  Как страница реагирует на клики — описано в файле script.js.
+
+  Почти у каждого текстового элемента ниже есть атрибут data-i18n="какое-то-имя".
+  Это "метка" для script.js: когда человек переключает язык (RU / EN),
+  скрипт находит все элементы с data-i18n и подставляет в них перевод
+  из словаря translations, который лежит в script.js.
+-->
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Никита Баннов — QA Engineer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Фоновый узор из точек, просто для красоты, ни на что не влияет -->
+<div class="bg-pattern" aria-hidden="true"></div>
+
+<main class="wrapper">
+  <section class="card">
+
+    <!--
+      "Шапка" карточки: кнопки языка и темы.
+      Раньше эти кнопки "плавали" поверх всей страницы (position: fixed)
+      и при прокрутке текст мог заезжать под них, перекрываясь. Теперь это
+      обычная строка ВНУТРИ самой карточки, в начале, как заголовок панели —
+      обычный элемент разметки, а не наложение. Он не может ничего перекрыть,
+      потому что просто занимает своё место в потоке, как любой другой блок.
+    -->
+    <div class="card-toolbar">
+      <button id="langToggle" class="lang-toggle" title="Switch language">EN</button>
+
+      <button id="themeToggle" class="theme-toggle" title="Сменить тему" aria-label="Сменить тему">
+        <!-- Иконка солнца — показывается в тёмной теме (намекает "нажми, чтобы стало светло") -->
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <!-- Иконка луны — показывается в светлой теме -->
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+      </button>
+    </div>
+
+    <!-- Левая (или верхняя на телефоне) часть карточки: кто я и чем занимаюсь -->
+    <div class="card-main">
+
+      <div class="identity">
+        <div class="avatar" data-i18n="avatarInitials">НБ</div>
+        <div class="identity-text">
+          <h1 class="name" data-i18n="name">Никита Баннов</h1>
+          <p class="title" data-i18n="title">QA-инженер · Автоматизация тестирования</p>
+          <p class="location">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            <span data-i18n="location">Remote · открыт к проектам</span>
+          </p>
+        </div>
+      </div>
+
+      <p class="tagline"><span data-i18n="tagline">Ловлю баги до релиза и автоматизирую рутину</span></p>
+
+      <p class="bio" data-i18n="bio">
+        Занимаюсь тестированием: пишу тест-кейсы, покрываю функциональность автотестами на Python
+        и настраиваю проверки в CI/CD, чтобы баги не доезжали до продакшена.
+        Параллельно веду свой pet-проект — телеграм-бота.
+      </p>
+
+      <ul class="skills">
+        <li>Manual QA</li>
+        <li>Test Automation</li>
+        <li>Python</li>
+        <li>Pytest</li>
+        <li>Selenium / Playwright</li>
+        <li>Postman / API Testing</li>
+        <li>CI/CD</li>
+        <li>Telegram Bot API</li>
+      </ul>
+
+      <!-- Блок про личный проект: телеграм-бот Cvium -->
+      <div class="project">
+        <h2 class="section-heading" data-i18n="projectHeading">Проект</h2>
+        <a class="project-card" href="https://t.me/" target="_blank" rel="noopener">
+          <!-- ^ замените ссылку выше на настоящую ссылку на вашего бота -->
+          <span class="project-name">Cvium <span class="project-arrow">→</span></span>
+          <span class="project-desc" data-i18n="projectDesc">
+            Телеграм-бот, который за пару минут собирает ATS-резюме с помощью AI.
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Разделительная линия между левой и правой частью (на телефоне — горизонтальная) -->
+    <div class="card-divider" aria-hidden="true"></div>
+
+    <!-- Правая (или нижняя на телефоне) часть карточки: как со мной связаться -->
+    <div class="card-contacts">
+      <h2 class="contacts-heading" data-i18n="contactsHeading">Контакты</h2>
+
+      <ul class="contacts">
+        <li>
+          <a href="mailto:bany.bannov@gmail.com">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            <span>bany.bannov@gmail.com</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://t.me/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 4-19 8 6 2 2 6 3-4 5 3Z"/></svg>
+            <span>Telegram</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://github.com/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.4 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
+            <span>GitHub</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://linkedin.com/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 11v5M8 8v.01M12 16v-5M12 16v-3a2 2 0 0 1 4 0v3"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="cta-row">
+        <a class="cta-primary" href="mailto:bany.bannov@gmail.com" data-i18n="ctaPrimary">Написать на почту</a>
+        <a class="cta-secondary" href="https://t.me/" target="_blank" rel="noopener" data-i18n="ctaSecondary">Написать в Telegram</a>
+      </div>
+    </div>
+
+  </section>
+
+  <p class="footer-note" data-i18n="footerNote">© 2026 Никита Баннов · Открыт к предложениям о работе и сотрудничестве</p>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

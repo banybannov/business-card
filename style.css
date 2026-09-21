@@ -1,0 +1,486 @@
+/*
+  Это файл со стилями (CSS). Он отвечает только за то, КАК выглядит страница:
+  цвета, отступы, размеры шрифтов, расположение блоков.
+  За саму структуру страницы отвечает index.html, за поведение — script.js.
+
+  Стили организованы сверху вниз примерно в том же порядке,
+  в каком элементы идут в index.html: сначала общие настройки страницы,
+  потом кнопки в углу, потом сама карточка и её части,
+  и в конце — правила для маленьких экранов (телефон/планшет).
+*/
+
+/* ---------- Цветовые переменные ----------
+   Переменная вида --что-то задаётся один раз здесь,
+   а дальше используется по всему файлу как var(--что-то).
+   Это удобно: чтобы поменять акцентный цвет везде, достаточно
+   поменять его в одном месте.
+*/
+:root {
+  --bg-1: #0b1220;       /* цвет фона сверху (тёмная тема) */
+  --bg-2: #0f1b2d;       /* цвет фона снизу (тёмная тема) */
+  --surface: rgba(255, 255, 255, 0.03);        /* лёгкая подложка */
+  --surface-strong: rgba(255, 255, 255, 0.05); /* подложка чуть заметнее */
+  --border: rgba(255, 255, 255, 0.10);         /* цвет тонких рамок */
+  --text: #e4e8f0;        /* основной цвет текста */
+  --text-dim: #93a0b3;    /* приглушённый цвет текста (подписи) */
+  --accent: #5b8def;      /* единственный акцентный цвет — используется точечно */
+  --shadow: rgba(0, 0, 0, 0.35);
+}
+
+/* Когда на <html> стоит атрибут data-theme="light" — используются эти цвета вместо тёмных */
+[data-theme="light"] {
+  --bg-1: #f5f7fa;
+  --bg-2: #eceff4;
+  --surface: rgba(15, 23, 42, 0.025);
+  --surface-strong: rgba(15, 23, 42, 0.04);
+  --border: rgba(15, 23, 42, 0.10);
+  --text: #16202f;
+  --text-dim: #5c6675;
+  --accent: #3b6fd6;
+  --shadow: rgba(15, 23, 42, 0.10);
+}
+
+/* Сбрасываем стандартные отступы браузера у всех элементов */
+* {
+  box-sizing: border-box;
+}
+
+/*
+  scrollbar-gutter: stable — резервирует место под вертикальную полосу
+  прокрутки заранее, даже когда она сейчас не нужна. Без этого при смене
+  языка (текст становится короче/длиннее) страница может из года стать
+  чуть выше или ниже, полоса прокрутки появляется/исчезает — и всё,
+  что стоит по центру экрана, на мгновение сдвигается на пару пикселей.
+*/
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, system-ui, sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  transition: color 0.3s ease, background 0.3s ease;
+  position: relative;
+}
+
+/* Едва заметный узор из точек на фоне — просто фактура, не отвлекает */
+.bg-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+  background-size: 30px 30px;
+  opacity: 0.4;
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 15%, #000 0%, transparent 75%);
+}
+
+/*
+  ---------- Шапка карточки: кнопки языка и темы ----------
+  Это обычная строка ВНУТРИ карточки (первая, перед именем), не наложение
+  поверх страницы. Именно поэтому она никогда не может закрыть собой
+  текст: он просто не может оказаться "под" ней, ведь оба блока идут
+  один за другим в обычном потоке разметки, как строки в тексте.
+*/
+.card-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.lang-toggle,
+.theme-toggle {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.lang-toggle:hover,
+.theme-toggle:hover {
+  background: var(--surface);
+}
+.lang-toggle:active,
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.lang-toggle {
+  width: 44px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.theme-toggle {
+  width: 40px;
+}
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+/* По умолчанию (тёмная тема) показываем иконку солнца, луну прячем */
+.theme-toggle .icon-moon { display: none; }
+.theme-toggle .icon-sun { display: block; }
+/* В светлой теме — наоборот */
+[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+
+/*
+  ---------- Общая обёртка страницы: центрирует карточку по горизонтали ----------
+  Тут нет "justify-content: center" (центрирования по вертикали) специально:
+  если карточка выше, чем окно браузера, флексбокс с центрированием обрежет
+  её одинаково сверху и снизу, и верх карточки (аватар, имя) окажется
+  недоступен без прокрутки вверх. Без этого свойства карточка просто
+  начинается сверху (после отступа padding-top) и всегда полностью
+  доступна через обычную прокрутку вниз.
+*/
+.wrapper {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 32px 16px;
+}
+
+/* ---------- Сама карточка ---------- */
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px var(--shadow);
+  padding: 26px 22px;
+}
+
+/* Блок "аватар + имя + должность + локация" */
+.identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Аватар — просто квадрат с инициалами, без ярких градиентов */
+.avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.name {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.location {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.location svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* Короткая строка-акцент под именем */
+.tagline {
+  margin: 0 0 12px;
+}
+.tagline span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.bio {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+/* Список технологий/навыков — просто маленькие "плашки" */
+.skills {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.skills li {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+/* Заголовки маленьких секций внутри карточки ("Проект", и т.п.) */
+.section-heading {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-dim);
+}
+
+/* Карточка личного проекта (телеграм-бот) */
+.project-card {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.project-card:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.project-name {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.project-arrow {
+  color: var(--accent);
+}
+.project-desc {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Разделительная линия между "обо мне" и "контактами" */
+.card-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+.contacts-heading {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-dim);
+}
+
+.contacts {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contacts a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 44px; /* удобный размер, чтобы попадать пальцем на телефоне */
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.contacts a:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+.contacts a:active {
+  transform: scale(0.98);
+}
+.contacts a svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.contacts a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Кнопки "написать" внизу правой колонки */
+.cta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.cta-primary,
+.cta-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+/* Основная кнопка — заливка одним спокойным цветом, без градиента */
+.cta-primary {
+  color: #ffffff;
+  background: var(--accent);
+}
+
+/* Вторая кнопка — просто обводка, без заливки */
+.cta-secondary {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.cta-primary:hover,
+.cta-secondary:hover {
+  opacity: 0.88;
+}
+.cta-primary:active,
+.cta-secondary:active {
+  transform: scale(0.98);
+}
+
+.footer-note {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  opacity: 0.7;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+/* ==========================================================
+   Ниже — правила для больших экранов (планшет и десктоп).
+   По умолчанию (выше) стили рассчитаны на телефон —
+   это называется "mobile-first": сначала простая версия
+   для маленького экрана, потом добавляем красоту для больших.
+   ========================================================== */
+
+/* ---------- Планшет и шире (от 640px) ---------- */
+@media (min-width: 640px) {
+  .card {
+    max-width: 700px;
+    padding: 36px 40px;
+    display: grid;
+    grid-template-columns: 1fr 1px 220px; /* левая колонка / линия / правая колонка */
+    column-gap: 30px;
+    align-items: start;
+  }
+  /* grid-column: 1 / -1 значит "растянись на все колонки сетки" —
+     без этого шапка с кнопками заняла бы только первую (левую) колонку. */
+  .card-toolbar {
+    grid-column: 1 / -1;
+  }
+  .card-divider {
+    height: auto;
+    width: 1px;
+    margin: 0;
+  }
+  .name {
+    font-size: 22px;
+  }
+  .avatar {
+    width: 58px;
+    height: 58px;
+    font-size: 18px;
+  }
+}
+
+/* ---------- Десктоп (от 1024px) ---------- */
+@media (min-width: 1024px) {
+  .card {
+    max-width: 800px;
+    padding: 44px 48px;
+    grid-template-columns: 1fr 1px 250px;
+  }
+  .bio {
+    font-size: 13.5px;
+  }
+}
+
+/* ---------- Совсем маленькие телефоны ---------- */
+@media (max-width: 360px) {
+  .wrapper {
+    padding: 20px 12px 24px;
+  }
+  .card {
+    padding: 20px 16px;
+    border-radius: 14px;
+  }
+  .avatar {
+    width: 46px;
+    height: 46px;
+    font-size: 15px;
+  }
+  .name {
+    font-size: 18px;
+  }
+}
+
+/* Уважаем настройку "уменьшить анимацию" в системе пользователя */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

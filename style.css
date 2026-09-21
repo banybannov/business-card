@@ -175,19 +175,18 @@ body {
   margin-bottom: 16px;
 }
 
-/* Аватар — просто квадрат с инициалами, без ярких градиентов */
+/*
+  Аватар — фотография в квадрате со скруглёнными углами.
+  object-fit: cover значит "заполни собой всю рамку, обрезав лишнее
+  по краям, но не растягивая и не сжимая пропорции" — так фото
+  не искажается, даже если его исходные пропорции не идеально квадратные.
+*/
 .avatar {
   flex-shrink: 0;
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: 0.5px;
-  color: var(--accent);
+  object-fit: cover;
   background: var(--surface-strong);
   border: 1px solid var(--border);
 }
@@ -442,7 +441,6 @@ body {
   .avatar {
     width: 58px;
     height: 58px;
-    font-size: 18px;
   }
 }
 
@@ -470,7 +468,6 @@ body {
   .avatar {
     width: 46px;
     height: 46px;
-    font-size: 15px;
   }
   .name {
     font-size: 18px;

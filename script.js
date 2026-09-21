@@ -56,7 +56,6 @@ themeButton.addEventListener("click", function () {
 const translations = {
   ru: {
     name: "Никита Баннов",
-    avatarInitials: "НБ",
     title: "QA-инженер · Автоматизация тестирования",
     location: "Remote · открыт к проектам",
     tagline: "Ловлю баги до релиза и автоматизирую рутину",
@@ -72,7 +71,6 @@ const translations = {
   },
   en: {
     name: "Nikita Bannov",
-    avatarInitials: "NB",
     title: "QA Engineer · Test Automation",
     location: "Remote · open to opportunities",
     tagline: "Catching bugs before release, automating the rest",

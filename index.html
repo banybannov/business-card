@@ -1,417 +1,873 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
 <meta charset="utf-8">
-<title>Bany OS</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BANY OS — Никита Баннов</title>
+<meta name="description" content="Никита Баннов, QA-инженер. Интерактивная визитка в стиле ретро-ОС.">
+<meta name="theme-color" content="#050a07">
+<link rel="preload" href="assets/fonts/press-start-2p-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/pixelify-sans-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-/* ============ ТЕМА (правь тут) ============ */
-:root{
-  --bg:#050a07;            /* фон ОС */
-  --phos:#7fe08a;          /* основной зелёный */
-  --phos-dim:#2f6b3a;      /* приглушённый зелёный */
-  --phos-hi:#d8ffd8;       /* яркий */
-  --lamp:#ff5a6e;          /* акцент из красной комнаты */
-  --ink:#d9f5dc;
-  --font-ui:'VT323','Courier New',monospace;
-  --icon-filter:none;      /* напр. sepia(.4) hue-rotate(70deg) saturate(1.3) */
-  --icon-size:96px;        /* размер иконок */
-  --taskbar:46px;
-}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden}
-body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none}
-button{font-family:inherit}
+/* =====================================================================
+   ШРИФТЫ (лежат локально в assets/fonts, лицензия SIL OFL 1.1)
+   Press Start 2P — заголовки, панель задач, подписи. Чётко выглядит на размерах, кратных 8px.
+   Pixelify Sans  — основной текст в окнах.
+   ===================================================================== */
+@font-face{font-family:'Press Start 2P';src:url(assets/fonts/press-start-2p-cyrillic-400.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;font-display:swap}
+@font-face{font-family:'Press Start 2P';src:url(assets/fonts/press-start-2p-latin-400.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap}
+@font-face{font-family:'Pixelify Sans';src:url(assets/fonts/pixelify-sans-cyrillic-400.woff2) format('woff2');font-weight:400 700;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;font-display:swap}
+@font-face{font-family:'Pixelify Sans';src:url(assets/fonts/pixelify-sans-latin-400.woff2) format('woff2');font-weight:400 700;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap}
 
-/* ============ ЭКРАН 1: монитор ============ */
-#view{position:fixed;inset:0;overflow:hidden;background:#0b0d0c}
-#paint{position:absolute;left:0;top:0;width:1024px;height:1024px;transform-origin:0 0;will-change:transform}
+/* Цвета задаются в CONFIG.colors (в скрипте ниже) и подставляются сюда автоматически */
+:root{
+  --bg:#050a07; --panel:#0b1a10; --dim:#1d5a2a; --mid:#2f8a3e; --phos:#7fe08a; --hi:#c8ffc8;
+  --accent:#ff3b5c; --accent-dim:#4a0f1c; --black:#000;
+  --title:'Press Start 2P',monospace; --body:'Pixelify Sans','Press Start 2P',monospace;
+  --tb:40px;           /* высота панели задач */
+  --t8:16px;           /* «крупный» размер Press Start 2P (кратно 8) */
+  --t8s:8px;           /* мелкий размер Press Start 2P */
+  --txt:18px;          /* основной текст */
+  --ico:64px;          /* размер иконки — пересчитывается в JS под целый масштаб пикселей */
+  --room:512px;        /* размер окна комнаты — пересчитывается в JS */
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--phos);overflow:hidden}
+body{font-family:var(--body);font-size:var(--txt);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:none;font-smooth:never}
+button{font:inherit;color:inherit;border-radius:0}
+a{color:var(--hi)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.px{image-rendering:pixelated;image-rendering:crisp-edges}
+[hidden]{display:none!important}
+
+/* ============ ЭКРАН 1: монитор в комнате ============ */
+#scene{position:fixed;inset:0;overflow:hidden;background:var(--black)}
+/* фон за пределами фото — та же картинка, размытая: на любых пропорциях экрана фото не обрезается */
+#backdrop{position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(28px) brightness(.32) saturate(.8);pointer-events:none}
+#crt{position:absolute;left:0;top:0;transform-origin:0 0;background:#020503;will-change:transform}
+#paint{position:absolute;left:0;top:0;width:1024px;height:1024px;transform-origin:0 0;will-change:transform;pointer-events:none}
 #paint img{display:block;width:1024px;height:1024px;max-width:none}
-#glow{position:absolute;left:120px;top:150px;width:780px;height:640px;pointer-events:none;mix-blend-mode:screen;
-  background:radial-gradient(closest-side,rgba(80,255,120,.30),rgba(80,255,120,0))}
-#screen{position:absolute;left:0;top:0;width:494px;height:336px;transform-origin:0 0;image-rendering:auto;will-change:transform;background:#000;border-radius:16px}
-#hint{position:fixed;left:0;right:0;bottom:max(24px,env(safe-area-inset-bottom,0px));text-align:center;font-size:30px;letter-spacing:.14em;
-  color:var(--phos);text-shadow:0 0 8px rgba(127,224,138,.55),0 1px 0 #000;opacity:0;transition:opacity .6s;pointer-events:none}
-#hint.on{opacity:1;animation:blink 1.4s steps(2,jump-none) infinite}
-@keyframes blink{50%{opacity:.35}}
-#view.hot{cursor:pointer}
-#replay{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:max(16px,env(safe-area-inset-top,0px));font-size:22px;letter-spacing:.08em;
-  color:var(--phos);background:rgba(5,10,7,.55);border:1px solid var(--phos-dim);padding:0 10px;cursor:pointer;z-index:60}
-#replay:hover,#replay:focus-visible{border-color:var(--phos);outline:none}
+#glow{position:absolute;pointer-events:none;mix-blend-mode:screen;opacity:.0;
+  background:radial-gradient(closest-side,rgba(110,255,140,.28),rgba(110,255,140,0))}
+#scene.hot{cursor:pointer}
+#hint{position:fixed;left:16px;right:16px;bottom:max(20px,env(safe-area-inset-bottom));text-align:center;font:var(--t8)/1.6 var(--title);color:var(--phos);
+  text-shadow:0 0 6px rgba(127,224,138,.6),2px 2px 0 #000;opacity:0;pointer-events:none}
+#hint.on{opacity:1;animation:blink 1.2s steps(1) infinite;pointer-events:auto;cursor:pointer;z-index:5}
+#hint b{color:var(--accent);font-weight:400}
+@keyframes blink{50%{opacity:.25}}
+.corner{position:fixed;top:max(12px,env(safe-area-inset-top));z-index:70;display:flex;gap:8px}
+.corner.r{right:max(12px,env(safe-area-inset-right))}
+.chip{font:var(--t8s)/1 var(--title);background:var(--bg);color:var(--phos);border:2px solid var(--dim);padding:6px 8px;cursor:pointer}
+.chip:hover{border-color:var(--phos)}
 
 /* ============ ЭКРАН 2: ОС ============ */
-#os{position:fixed;inset:0;opacity:0;pointer-events:none;background:var(--bg);overflow:hidden}
-#os.on{pointer-events:auto}
-#os::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 45%,rgba(60,200,100,.10),rgba(0,0,0,0) 62%),
-  repeating-linear-gradient(0deg,rgba(127,224,138,.035) 0 1px,transparent 1px 4px)}
-#os::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:50;
-  background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.20) 2px 3px)}
-.desk{position:absolute;inset:0 0 var(--taskbar) 0;display:grid;grid-template-columns:1fr var(--room) 1fr;align-items:center;gap:12px;
-  padding:12px max(16px,env(safe-area-inset-left,0px));box-sizing:border-box;--room:min(calc(100vh - var(--taskbar) - 70px),52vw)}
-.icons{display:grid;grid-template-columns:repeat(2,calc(var(--icon-size) + 16px));grid-auto-rows:calc(var(--icon-size) + 34px);gap:6px 10px;justify-content:center;align-content:center}
-.icon{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;padding:4px;cursor:pointer;color:var(--phos);
-  font-size:20px;line-height:1;letter-spacing:0;text-shadow:0 1px 0 #000;opacity:0;transform:scale(.6)}
-.icon .spr{flex:none;width:64px;height:64px;background:url(assets/icons.png) no-repeat;image-rendering:pixelated;transform:scale(1.4);transform-origin:50% 60%;
-  margin:10px 0 8px;filter:var(--icon-filter)}
-.icon span.l{display:block;max-width:calc(var(--icon-size) + 12px);overflow-wrap:anywhere;padding:1px 4px;word-break:break-word}
-.icon:hover span.l,.icon:focus-visible span.l{background:var(--phos);color:#04100a;outline:none}
-.icon.pop{animation:pop .45s cubic-bezier(.2,1.4,.4,1) forwards}
-@keyframes pop{to{opacity:1;transform:scale(1)}}
-#roomwin{display:flex;flex-direction:column;border:2px solid var(--phos);background:#000;box-shadow:0 0 28px rgba(127,224,138,.25);opacity:0}
-#roomwin .tb{display:flex;justify-content:space-between;align-items:center;background:var(--phos);color:#04100a;font-size:22px;letter-spacing:.1em;padding:0 8px;line-height:24px}
-#roomwin .tb i{display:inline-block;width:8px;height:8px;background:var(--lamp);margin-right:8px;animation:blink 1.1s steps(2,jump-none) infinite}
-#roomwrap{width:var(--room);height:var(--room);overflow:visible;position:relative}
-#room{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;transform-origin:50% 50%;will-change:transform}
-.desk.hide-ui #roomwin{opacity:1}
+#os{position:fixed;inset:0;background:var(--bg);overflow:hidden;visibility:hidden}
+#os.on{visibility:visible}
+/* скан-линии и лёгкое мерцание поверх всего */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:90;
+  background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.22) 2px 3px)}
+#fx.flick{animation:flick 4s steps(1) infinite}
+@keyframes flick{0%,100%{opacity:1}47%{opacity:.85}48%{opacity:1}}
+#desk{position:absolute;left:0;right:0;top:0;bottom:var(--tb);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;gap:16px;
+  padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
+.icons{display:grid;grid-template-columns:repeat(2,calc(var(--ico) + 40px));gap:12px 8px;justify-content:center;align-content:center}
+.icon{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--phos);visibility:hidden}
+.icon .ico{width:var(--ico);height:var(--ico);background:url(assets/icons.png) no-repeat;background-size:calc(var(--ico) * 12) var(--ico)}
+.icon .lb{font:var(--t8s)/1.5 var(--title);padding:2px 4px;max-width:calc(var(--ico) + 40px);overflow-wrap:anywhere;text-align:center;text-shadow:1px 1px 0 #000}
+.icon:hover .lb,.icon:focus-visible .lb,.icon.sel .lb{background:var(--phos);color:var(--bg);text-shadow:none}
+.icon:focus-visible{outline:none}
+.icon.show{visibility:visible;animation:pop .3s steps(3) both}
+@keyframes pop{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
 
-/* панель задач */
-#taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--taskbar);box-sizing:border-box;background:#06120b;border-top:2px solid var(--phos);
-  display:flex;align-items:center;gap:8px;padding:0 max(10px,env(safe-area-inset-left,0px));font-size:24px;z-index:20;transform:translateY(100%)}
-#taskbar.up{transform:none;transition:transform .5s}
-#start{background:var(--phos);color:#04100a;border:0;padding:0 12px;font-size:24px;letter-spacing:.1em;cursor:pointer;line-height:30px}
-#tasks{display:flex;gap:6px;flex:1;min-width:0;overflow:hidden}
-.task{border:1px solid var(--phos-dim);background:none;color:var(--phos);font-size:20px;padding:0 10px;cursor:pointer;white-space:nowrap;line-height:26px}
-.task.act{background:var(--phos-dim);color:var(--phos-hi)}
-#clock{color:var(--phos);letter-spacing:.1em}
-#exit{background:none;border:1px solid var(--phos-dim);color:var(--phos);font-size:20px;padding:0 10px;cursor:pointer;line-height:26px}
-#exit:hover{border-color:var(--phos)}
+#roomwin{position:relative;z-index:30;display:flex;flex-direction:column}
+#roomwin .tbar{transition:none}
+#roomwrap{position:relative;width:var(--room);height:var(--room);background:#000}
+#room{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;will-change:transform}
+#roomwin.frame{border:2px solid var(--phos);background:#000;box-shadow:4px 4px 0 #000}
+#roomwin:not(.frame){border:2px solid transparent}
+#roomwin:not(.frame) .tbar{visibility:hidden}
 
 /* окна */
-#wins{position:absolute;inset:0 0 var(--taskbar) 0;pointer-events:none;z-index:10}
-.win{position:absolute;pointer-events:auto;border:2px solid var(--phos);background:#000;box-shadow:6px 6px 0 rgba(0,0,0,.55),0 0 22px rgba(127,224,138,.18);max-width:94vw}
-.win .tb{display:flex;justify-content:space-between;align-items:center;background:var(--phos);color:#04100a;font-size:22px;letter-spacing:.08em;padding:0 4px 0 8px;line-height:24px;cursor:move;touch-action:none}
-.win .x{background:#04100a;color:var(--phos);border:0;width:22px;height:20px;line-height:18px;font-size:20px;cursor:pointer;padding:0}
-.win .x:hover{background:var(--lamp);color:#fff}
-.win img{display:block;max-width:100%;height:auto;max-height:calc(100vh - var(--taskbar) - 70px);width:100%;object-fit:contain}
-.win .empty{padding:26px 34px;color:var(--phos);font-size:26px;letter-spacing:.08em}
+.tbar{display:flex;align-items:center;gap:8px;background:var(--phos);color:var(--bg);font:var(--t8s)/1 var(--title);height:24px;padding:0 4px 0 8px;letter-spacing:0}
+.tbar .tt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:1px}
+.tbar .dot{width:8px;height:8px;background:var(--accent);flex:none}
+.tbar .dot.blink{animation:blink 1s steps(1) infinite}
+#wins{position:absolute;left:0;right:0;top:0;bottom:var(--tb);pointer-events:none;z-index:40}
+.win{position:absolute;pointer-events:auto;display:flex;flex-direction:column;border:2px solid var(--phos);background:var(--bg);box-shadow:6px 6px 0 #000;max-width:calc(100vw - 16px)}
+.win.inactive{border-color:var(--mid)}
+.win.inactive .tbar{background:var(--mid)}
+.win .tbar{cursor:move;touch-action:none}
+.win .x{flex:none;width:18px;height:16px;padding:0;border:2px solid var(--bg);background:var(--phos);color:var(--bg);font:8px/1 var(--title);cursor:pointer;display:grid;place-items:center}
+.win .x:hover{background:var(--accent);color:#fff}
+.win .body{overflow:auto;padding:16px;line-height:1.35;-webkit-user-select:text;user-select:text;scrollbar-color:var(--phos) var(--panel)}
+.win .body.flush{padding:0;line-height:0}
+.win .body img{display:block;width:100%;height:auto}
+.win h2{font:var(--t8)/1.4 var(--title);margin:0 0 8px;color:var(--hi)}
+.win h3{font:var(--t8s)/1.4 var(--title);margin:16px 0 8px;color:var(--phos)}
+.win p{margin:0 0 12px}
+.win .muted{color:var(--mid)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.tags li{border:2px solid var(--dim);padding:0 6px;color:var(--hi)}
+.rows{list-style:none;margin:0;padding:0}
+.rows li{display:flex;gap:12px;align-items:baseline;padding:6px 0;border-bottom:2px dotted var(--dim)}
+.rows li b{font-weight:400;color:var(--hi);min-width:7em}
+.rows a{color:var(--hi)}
+.btn{display:inline-block;font:var(--t8s)/1 var(--title);background:var(--bg);color:var(--phos);border:2px solid var(--phos);padding:8px 10px;cursor:pointer;text-decoration:none;margin:4px 8px 4px 0}
+.btn:hover,.btn:focus-visible{background:var(--phos);color:var(--bg)}
+.btn.red{border-color:var(--accent);color:var(--accent)}
+.btn.red:hover{background:var(--accent);color:#fff}
+.about{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+.about canvas{width:96px;height:96px;border:2px solid var(--phos);flex:none;filter:grayscale(1) sepia(1) hue-rotate(65deg) saturate(2.4) brightness(.95) contrast(1.15)}
+.addr{display:flex;gap:8px;align-items:center;border:2px solid var(--dim);padding:4px 8px;margin-bottom:12px;font:var(--t8s)/1.4 var(--title)}
+/* терминал */
+.term{font-family:var(--body);background:#020503;color:var(--phos);min-height:260px;padding:12px;line-height:1.3;white-space:pre-wrap;word-break:break-word}
+.term .in{display:flex;gap:6px}
+.term input{flex:1;min-width:0;background:none;border:0;color:var(--hi);font:inherit;padding:0;outline:none;caret-color:var(--phos)}
+.term .hl{color:var(--hi)}
+.term .er{color:var(--accent)}
+/* прогресс */
+.bar{height:24px;border:2px solid var(--phos);padding:2px;margin:8px 0 12px}
+.bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--phos) 0 12px,transparent 12px 16px);width:0}
+/* календарь */
+.cal{border-collapse:collapse;width:100%;text-align:center}
+.cal th{font:var(--t8s)/2 var(--title);color:var(--mid)}
+.cal td{border:2px solid var(--dim);padding:6px 0}
+.cal td.today{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cal td.off{border-color:transparent}
+canvas.screen{display:block;width:100%;height:auto;background:#000}
+/* панель задач */
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--tb);z-index:60;display:flex;align-items:center;gap:6px;
+  padding:0 max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left));
+  background:var(--panel);border-top:2px solid var(--phos);transform:translateY(110%)}
+#taskbar.up{transform:none;transition:transform .3s steps(3)}
+#start{background:var(--phos);color:var(--bg);border:0;font:var(--t8s)/1 var(--title);padding:8px 10px;cursor:pointer;flex:none}
+#start[aria-expanded=true]{background:var(--hi)}
+#tasks{display:flex;gap:6px;flex:1;min-width:0;overflow:hidden}
+.task{font:var(--t8s)/1 var(--title);border:2px solid var(--dim);background:none;padding:6px 8px;cursor:pointer;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.task.act{border-color:var(--phos);background:var(--dim);color:var(--hi)}
+#snd{font:var(--t8s)/1 var(--title);background:none;border:2px solid var(--dim);padding:6px;cursor:pointer;flex:none}
+#clock{font:var(--t8s)/1 var(--title);color:var(--phos);flex:none;padding:0 4px}
+#menu{position:absolute;left:max(6px,env(safe-area-inset-left));bottom:calc(var(--tb) - 2px);z-index:70;background:var(--panel);border:2px solid var(--phos);box-shadow:6px 6px 0 #000;min-width:220px;padding:4px 0}
+#menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:8px 12px;cursor:pointer;font:var(--t8s)/1.2 var(--title)}
+#menu button:hover,#menu button:focus-visible{background:var(--phos);color:var(--bg);outline:none}
+#menu hr{border:0;border-top:2px solid var(--dim);margin:4px 0}
+#menu .mi{width:16px;height:16px;flex:none;background:url(assets/icons.png) no-repeat;background-size:192px 16px}
+#flash{position:fixed;inset:0;background:var(--accent);mix-blend-mode:multiply;opacity:0;pointer-events:none;z-index:85}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-@media (max-aspect-ratio:1/1){
-  .desk{grid-template-columns:1fr;grid-template-rows:auto var(--room) auto;align-content:center;--room:min(calc(100vw - 32px),calc(100vh - var(--taskbar) - 330px));justify-items:center;gap:6px}
-  .icons{grid-template-columns:repeat(4,80px);grid-auto-rows:92px;--icon-size:78px;gap:0 4px}
-  .icon .spr{transform:scale(1);margin:2px 0 2px}
-  .icon{font-size:16px;padding:0}
-  .icon span.l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:76px}
+/* узкий / вертикальный экран: комната сверху, иконки снизу */
+@media (max-aspect-ratio:4/5),(max-width:640px){
+  #desk{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:center;gap:12px;padding-top:max(12px,env(safe-area-inset-top))}
+  #desk .icons{grid-template-columns:repeat(4,calc((100vw - 32px) / 4));gap:8px 0}
+  #iconsL{order:2} #roomwin{order:1} #iconsR{display:none}
+  .icon .lb{white-space:nowrap;overflow-wrap:normal;max-width:none;padding:2px}
+  :root{--t8:8px;--txt:16px}
+  .win .body{padding:12px}
+  .task{max-width:110px}
+}
+@media (prefers-reduced-motion:reduce){
+  .icon.show,#hint.on,.tbar .dot.blink,#fx.flick{animation:none}
+  #taskbar.up{transition:none}
 }
 </style>
+</head>
+<body>
 
-<div id="view">
-  <div id="paint">
-    <img id="img" src="assets/monitor.jpg" alt="Ретро-компьютер с зелёным экраном" draggable="false">
-    <div id="glow"></div>
-  </div>
-  <canvas id="screen" width="494" height="336"></canvas>
+<!-- ЭКРАН 1 -->
+<div id="scene" aria-label="Ретро-компьютер в комнате. Нажми на экран, чтобы войти.">
+  <img id="backdrop" src="assets/monitor.jpg" alt="" draggable="false">
+  <canvas id="crt" class="px"></canvas>
+  <div id="paint"><img id="photo" src="assets/monitor.webp" alt="Ретро-ЭЛТ-монитор на столе" draggable="false"></div>
+  <div id="glow"></div>
 </div>
-<div id="hint">&gt; НАЖМИ НА ЭКРАН_</div>
+<div id="hint" role="button" tabindex="0">&gt; НАЖМИ НА ЭКРАН<b>_</b></div>
+<div class="corner r" id="corner"><button class="chip" id="skip" type="button">ПРОПУСТИТЬ</button><button class="chip" id="snd0" type="button">ЗВУК: ВКЛ</button></div>
 
-<div id="os">
-  <div class="desk" id="desk">
-    <div class="icons" id="iconsL"></div>
+<!-- ЭКРАН 2 -->
+<div id="os" aria-hidden="true">
+  <div id="desk">
+    <nav class="icons" id="iconsL" aria-label="Иконки"></nav>
     <div id="roomwin">
-      <div class="tb"><span><i></i>BANY.EXE</span><span>я тут</span></div>
-      <div id="roomwrap"><canvas id="room" width="1024" height="1024"></canvas></div>
+      <div class="tbar"><span class="dot blink"></span><span class="tt">BANY.EXE — КОМНАТА</span><span>LIVE</span></div>
+      <div id="roomwrap"><canvas id="room" width="1024" height="1024" aria-label="Пиксельная комната: я за столом, спиной к камере"></canvas></div>
     </div>
-    <div class="icons" id="iconsR"></div>
+    <nav class="icons" id="iconsR" aria-label="Приложения"></nav>
   </div>
   <div id="wins"></div>
-  <div id="taskbar"><button id="start" type="button">БАНИ_ОС</button><div id="tasks"></div><span id="clock">--:--</span><button id="exit" type="button">ВЫЙТИ</button></div>
+  <div id="menu" hidden role="menu"></div>
+  <div id="taskbar">
+    <button id="start" type="button" aria-haspopup="true" aria-expanded="false">ПУСК</button>
+    <div id="tasks"></div>
+    <button id="snd" type="button" aria-label="Звук">ЗВУК</button>
+    <span id="clock">--:--</span>
+  </div>
 </div>
-<button id="replay" type="button">ЗАНОВО</button>
+<div id="flash"></div>
+<div id="fx"></div>
 
 <script>
-(function(){
 /* =====================================================================
-   НАСТРОЙКИ — всё, что захочешь поменять, лежит тут
+   CONFIG — всё, что стоит править, лежит здесь.
+   Координаты «в пикселях картинки» — это пиксели исходного файла
+   (monitor.jpg и room.png оба 1024x1024).
    ===================================================================== */
-var CONFIG={
-  rainMs:3300,          // сколько сыплется код на мониторе
-  diveMs:1900,          // падение камеры в экран
-  zoomOutMs:1700,       // отъезд внутри ОС до полной комнаты
-  roomFps:12,           // частота кадров анимации экранов в комнате
-  screenCrop:{x:0,y:170,w:1024,h:696},   // какую часть комнаты видно на мониторе (в пикселях картинки 1024x1024)
-  monitorGlass:[[260,300],[750,300],[750,632],[260,632]], // стекло монитора на monitor.jpg: ЛВ, ПВ, ПН, ЛН
-  focus:[505,470],      // куда смотрит камера на первом экране
-  zoom:1.12             // зум первого экрана (1 = картинка «cover»)
+const CONFIG = {
+  // Палитра ОС: 9 цветов интерфейса + цвета экранов в комнате (см. room.screens). Один тёплый акцент — красный неон.
+  colors: {
+    bg:'#050a07',      // почти чёрный фон
+    panel:'#0b1a10',   // панели
+    dim:'#1d5a2a',     // тёмно-зелёный (рамки, неактивное)
+    mid:'#2f8a3e',     // средний зелёный
+    phos:'#7fe08a',    // фосфор — основной
+    hi:'#c8ffc8',      // яркий фосфор — выделения
+    accent:'#ff3b5c',  // красный неон — единственный тёплый акцент
+    accentDim:'#4a0f1c',
+    black:'#000000'
+  },
+
+  // Тайминги, мс. fps — частота покадровых анимаций (комната, дождь), по ТЗ 8–12.
+  timing: {
+    boot: 600,         // тёмный экран с курсором до начала дождя
+    rain: 3000,        // сколько скатывается код
+    collapse: 260,     // сжатие изображения в линию
+    line: 220,         // яркая линия ЭЛТ
+    unfold: 520,       // раскрытие в комнату
+    dive: 1700,        // падение камеры в монитор
+    zoomOut: 1500,     // отъезд от комнаты до рабочего стола
+    iconStagger: 70,   // задержка между появлением иконок
+    fps: 10,           // анимации в комнате
+    rainFps: 12        // код-дождь
+  },
+
+  // Фото монитора. glass — углы стекла (ЛВ, ПВ, ПН, ЛН) в пикселях фото; safe — область, которая
+  // всегда должна быть видна целиком (монитор + клавиатура), остальное может уйти за край.
+  // Если меняешь фото: положи monitor.jpg и запусти tools/key_monitor.py — он вырежет хромакей
+  // в monitor.webp и подскажет углы.
+  monitor: {
+    photo: 'assets/monitor.webp',
+    glass: [[262,301],[745,298],[753,636],[253,635]],
+    safe: [220, 260, 800, 910]
+  },
+
+  // Экран ЭЛТ: реальное разрешение в «пикселях» (картинка растягивается чётко, без размытия).
+  // crop — какая часть комнаты видна на мониторе: [x, y, w, h] в пикселях room.png (пропорции ≈ w/h экрана).
+  crt: { w: 256, h: 174, crop: [0, 168, 1024, 696] },
+
+  // Комната (твоя сцена). Экраны оживают только там, где маска room-screens.png (её делает tools/make_masks.py).
+  // rect — [x, y, w, h] в пикселях room.png; kind — что показывать; colors — палитра экрана.
+  room: {
+    src: 'assets/room.png',
+    screensMask: 'assets/room-screens.png',
+    twinkleMask: 'assets/room-twinkle.png',   // диоды и огни за окном
+    twinkle: 0.14,                             // доля «погасших» огоньков в каждом кадре
+    screens: [
+      { kind:'log',   rect:[20, 80, 212, 148],  colors:['#3a0c1c','#b02c4a','#ff7d92','#ffe8ee'] },
+      { kind:'bars',  rect:[364,102,124, 76],   colors:['#09121c','#e8923a','#d04a4a','#4ab8d8','#6fe0a0'] },
+      { kind:'code',  rect:[300,376,368,206],   colors:['#bfe8e4','#7cb9bc','#3f7f88','#ff5a6e'] },
+      { kind:'graph', rect:[796,546,156, 80],   colors:['#04070b','#e8d04a','#6fe0a0','#4ab8d8','#e05050'] }
+    ]
+  },
+
+  // Звук синтезируется прямо в браузере (WebAudio), файлов нет. Включается после первого клика.
+  sound: { enabled: true, volume: 0.22, hum: true },
+
+  // Иконки рабочего стола. icon — номер картинки в assets/icons.png (слева направо, с нуля):
+  // 0 человек, 1 папка, 2 почта, 3 терминал, 4 глобус, 5 музыка, 6 камера, 7 календарь, 8 корзина, 9 вирус, 10 загрузка, 11 документ
+  icons: [
+    { id:'about',    label:'ОБО МНЕ',    icon:0,  side:'left'  },
+    { id:'projects', label:'ПРОЕКТЫ',    icon:1,  side:'left'  },
+    { id:'mail',     label:'ПОЧТА',      icon:2,  side:'left'  },
+    { id:'terminal', label:'ТЕРМИНАЛ',   icon:3,  side:'left'  },
+    { id:'web',      label:'ИНТЕРНЕТ',   icon:4,  side:'left'  },
+    { id:'downloads',label:'ЗАГРУЗКИ',   icon:10, side:'left'  },
+    { id:'music',    label:'МУЗЫКА',     icon:5,  side:'right' },
+    { id:'camera',   label:'КАМЕРА',     icon:6,  side:'right' },
+    { id:'calendar', label:'КАЛЕНДАРЬ',  icon:7,  side:'right' },
+    { id:'trash',    label:'КОРЗИНА',    icon:8,  side:'right' },
+    { id:'virus',    label:'ВИРУС.EXE',  icon:9,  side:'right' },
+    { id:'readme',   label:'README.TXT', icon:11, side:'right' }
+  ],
+
+  // Окна. w — ширина в px (на телефоне окно займёт всю ширину). type:
+  //   html — свой HTML в поле html;  img — картинка src (+ необязательный caption);
+  //   terminal / music / camera / calendar / downloads — встроенные приложения (код ниже, раздел APPS).
+  windows: {
+    about: { title:'ОБО_МНЕ.TXT', w:520, type:'html', html:`
+      <div class="about"><canvas width="40" height="40" data-avatar="assets/avatar.jpg" class="px"></canvas>
+        <div><h2>НИКИТА БАННОВ</h2><p>QA-инженер · автоматизация тестирования</p><p class="muted">Remote · открыт к проектам</p></div></div>
+      <p>Ловлю баги до релиза и автоматизирую рутину. Пишу тест-кейсы, покрываю функциональность автотестами
+      на Python и настраиваю проверки в CI/CD, чтобы баги не доезжали до продакшена.
+      Параллельно веду свой pet-проект — телеграм-бота.</p>
+      <h3>НАВЫКИ</h3>
+      <ul class="tags"><li>Manual QA</li><li>Test Automation</li><li>Python</li><li>Pytest</li><li>Selenium / Playwright</li>
+      <li>Postman / API</li><li>CI/CD</li><li>Telegram Bot API</li></ul>
+      <p style="margin-top:16px"><a class="btn" href="#" data-open="mail">НАПИСАТЬ МНЕ</a><a class="btn" href="#" data-open="projects">ПРОЕКТЫ</a></p>` },
+
+    projects: { title:'C:\\ПРОЕКТЫ', w:520, type:'html', html:`
+      <ul class="rows">
+        <li><b>CVIUM.BOT</b><span>Телеграм-бот, который за пару минут собирает ATS-резюме с помощью AI.
+          <br><a href="https://t.me/" target="_blank" rel="noopener">открыть в Telegram →</a></span></li>
+        <li><b>BANY_OS</b><span>Эта визитка: один HTML-файл, чистый JS, Canvas и CSS.
+          <br><a href="https://github.com/banybannov/business-card" target="_blank" rel="noopener">исходник на GitHub →</a></span></li>
+        <li><b>CLASSIC.HTML</b><span>Старая версия визитки, без ретро.
+          <br><a href="classic.html">открыть →</a></span></li>
+      </ul>` },
+
+    mail: { title:'ПОЧТА — КОНТАКТЫ', w:480, type:'html', html:`
+      <ul class="rows">
+        <li><b>E-MAIL</b><a href="mailto:bany.bannov@gmail.com">bany.bannov@gmail.com</a></li>
+        <li><b>TELEGRAM</b><a href="https://t.me/quebany" target="_blank" rel="noopener">@quebany</a></li>
+        <li><b>GITHUB</b><a href="https://github.com/banybannov" target="_blank" rel="noopener">banybannov</a></li>
+        <li><b>LINKEDIN</b><a href="https://www.linkedin.com/in/nikita-bannov-483104439" target="_blank" rel="noopener">nikita-bannov</a></li>
+      </ul>
+      <p style="margin-top:16px"><a class="btn" href="mailto:bany.bannov@gmail.com">НАПИСАТЬ НА ПОЧТУ</a><a class="btn" href="https://t.me/quebany" target="_blank" rel="noopener">НАПИСАТЬ В TELEGRAM</a></p>` },
+
+    web: { title:'NETSCAPE.EXE', w:500, type:'html', html:`
+      <div class="addr"><span class="muted">АДРЕС:</span><span>bany://ссылки</span></div>
+      <h2>ЗАКЛАДКИ</h2>
+      <ul class="rows">
+        <li><b>GITHUB</b><a href="https://github.com/banybannov" target="_blank" rel="noopener">github.com/banybannov</a></li>
+        <li><b>LINKEDIN</b><a href="https://www.linkedin.com/in/nikita-bannov-483104439" target="_blank" rel="noopener">linkedin.com/in/nikita-bannov</a></li>
+        <li><b>TELEGRAM</b><a href="https://t.me/quebany" target="_blank" rel="noopener">t.me/quebany</a></li>
+      </ul>
+      <p class="muted" style="margin-top:12px">Соединение 56 кбит/с. Пожалуйста, подождите...</p>` },
+
+    trash: { title:'КОРЗИНА', w:420, type:'img', src:'assets/rat404.jpg',
+      caption:'Здесь лежат баги, пойманные до релиза. Восстановлению не подлежат.' },
+    virus: { title:'SHUTDOWN.EXE', w:540, type:'img', src:'assets/virus.jpg', effect:'glitch' },
+    terminal:  { title:'ТЕРМИНАЛ', w:560, type:'terminal' },
+    music:     { title:'СИНТЕЗАТОР', w:420, type:'music' },
+    camera:    { title:'КАМЕРА — CAM_01', w:420, type:'camera' },
+    calendar:  { title:'КАЛЕНДАРЬ', w:380, type:'calendar' },
+    downloads: { title:'ЗАГРУЗКИ', w:460, type:'downloads',
+      files:[ ['WORD_PROC.PNG','assets/terminal.jpg'], ['REGISTERS.PNG','assets/register.jpg'], ['DOWNLOAD.PNG','assets/download.jpg'] ] },
+
+    readme: { title:'README.TXT', w:560, type:'html', html:`
+      <h2>BANY OS 1.0</h2>
+      <p>Визитка в виде ретро-ОС. Перетаскивай окна за заголовок, Esc — закрыть окно, «ПУСК → ВЫКЛЮЧИТЬ» — назад к монитору.</p>
+      <h3>ИСТОЧНИКИ И ЛИЦЕНЗИИ</h3>
+      <ul class="rows">
+        <li><b>ИКОНКИ</b><span>pixelarticons, Gerrit Halfmann — MIT. Перекрашены в палитру ОС.</span></li>
+        <li><b>ШРИФТЫ</b><span>Press Start 2P (CodeMan38) и Pixelify Sans (Stefie Justprince) — SIL OFL 1.1, Google Fonts.</span></li>
+        <li><b>КОМНАТА, МОНИТОР</b><span>Сцены автора сайта.</span></li>
+        <li><b>ЗВУК</b><span>Синтезируется в браузере, файлов нет.</span></li>
+      </ul>` }
+  },
+
+  // Терминал: команда → ответ (строка или функция). help печатает список автоматически.
+  terminal: {
+    prompt: 'C:\\BANY>',
+    greeting: 'BANY OS [версия 1.0]\n(c) Никита Баннов, 2026. Введи help.',
+    commands: {
+      whoami:   'Никита Баннов — QA-инженер. Автоматизация тестирования, Python, CI/CD.',
+      skills:   'Manual QA · Test Automation · Python · Pytest · Selenium/Playwright · Postman · CI/CD · Telegram Bot API',
+      contacts: 'e-mail: bany.bannov@gmail.com\ntelegram: @quebany\ngithub: banybannov',
+      projects: 'CVIUM.BOT — бот для ATS-резюме. Набери: open projects',
+      sudo:     'Доступ запрещён. Инцидент будет записан в тест-репорт.',
+      hello:    'hello, world!!'
+    }
+  }
 };
 
-/* Иконки ОС. spr = [колонка, строка] в assets/icons.png (ячейки 64x64).
-   win = ключ из WINDOWS (какое окно открыть), side = left | right */
-var ICONS=[
-  {l:'ПРОЕКТЫ',   spr:[3,6], side:'left'},
-  {l:'ВИДЕО',     spr:[6,6], side:'left'},
-  {l:'ПРОМПТЫ',   spr:[5,6], side:'left'},
-  {l:'ШОРТС',     spr:[7,6], side:'left'},
-  {l:'ЗАГРУЗКИ',  spr:[4,6], side:'left',  win:'download'},
-  {l:'HELLO_WORLD',spr:[0,7],side:'left',  win:'hello'},
-  {l:'ЧЕРНОВИКИ', spr:[2,7], side:'left'},
-  {l:'АРХИВ',     spr:[4,7], side:'left'},
+/* =====================================================================
+   Дальше — код. Обычно править его не нужно.
+   ===================================================================== */
+(function(){
+'use strict';
+const C = CONFIG, T = C.timing;
+const $ = id => document.getElementById(id);
+const root = document.documentElement;
+Object.entries(C.colors).forEach(([k,v]) => root.style.setProperty('--' + k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()), v));
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+let reduced = RM.matches;
+RM.addEventListener && RM.addEventListener('change', e => { reduced = e.matches; });
+const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
+const ease = x => { x = clamp(x,0,1); return x*x*x*(x*(6*x-15)+10); };
+const lerp = (a,b,t) => a + (b-a)*t;
+function rnd(n){ const x = Math.sin(n*127.1 + 311.7)*43758.5453; return x - Math.floor(x); }
+function loadImg(src){ return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
 
-  {l:'ТЕРМИНАЛ',  spr:[3,0], side:'right', win:'terminal'},
-  {l:'КОРЗИНА',   spr:[6,0], side:'right', win:'rat'},
-  {l:'ПОЧТА',     spr:[6,4], side:'right'},
-  {l:'КАМЕРА',    spr:[3,10],side:'right', win:'photo'},
-  {l:'СИНТЕЗАТОР',spr:[6,5], side:'right', win:'register'},
-  {l:'ИНТЕРНЕТ',  spr:[7,5], side:'right'},
-  {l:'ВИРУС.EXE', spr:[3,4], side:'right', win:'virus'},
-  {l:'КАЛЕНДАРЬ', spr:[4,10],side:'right'}
-];
-
-/* Окна. w — ширина в px (на узком экране сожмётся). Без src — пустое окно с текстом. */
-var WINDOWS={
-  terminal:{title:'WORD PROCESSOR',src:'assets/terminal.jpg',w:560},
-  rat:     {title:'404.EXE',       src:'assets/rat404.jpg',  w:460},
-  virus:   {title:'SHUTDOWN.EXE',  src:'assets/virus.jpg',   w:560},
-  register:{title:'REGISTER CONTROL',src:'assets/register.jpg',w:430},
-  download:{title:'ЗАГРУЗКИ',      src:'assets/download.jpg',w:430},
-  hello:   {title:'HELLO_WORLD',   src:'assets/hello.jpg',   w:400},
-  photo:   {title:'КАМЕРА — IMG_0001',src:'assets/room.png',w:460}
-};
-
-/* Комната: экраны, которые оживают. rect = [x,y,w,h] в пикселях room.png (1024x1024) */
-var SCREENS={
-  red:   [20,80,210,148],
-  top:   [364,102,124,76],
-  blinds:[300,20,540,395],
-  main:  [300,376,368,206],
-  right: [796,546,156,80]
-};
-
-/* ===================================================================== */
-var PW=1024, RS=1024;
-var $=function(i){return document.getElementById(i)};
-var view=$('view'),paint=$('paint'),screenC=$('screen'),sctx=screenC.getContext('2d'),hint=$('hint'),glow=$('glow'),img=$('img');
-var os=$('os'),desk=$('desk'),roomC=$('room'),rctx=roomC.getContext('2d'),taskbar=$('taskbar');
-var SW=screenC.width, SH=screenC.height;
-var CROP=CONFIG.screenCrop;
-
-/* ---------------- иконки ---------------- */
-function mkIcon(ic){
-  var b=document.createElement('button');b.type='button';b.className='icon';
-  b.innerHTML='<div class="spr" style="background-position:'+(-ic.spr[0]*64)+'px '+(-ic.spr[1]*64)+'px"></div><span class="l"></span>';
-  b.querySelector('.l').textContent=ic.l;
-  b.addEventListener('click',function(){openWin(ic.win||('empty:'+ic.l))});
-  return b}
-var iconEls=[];
-ICONS.forEach(function(ic){var el=mkIcon(ic);iconEls.push(el);$(ic.side==='left'?'iconsL':'iconsR').appendChild(el)});
-
-/* ---------------- окна ---------------- */
-var wins=$('wins'),tasks=$('tasks'),zTop=10,openN=0,wmap={};
-function focusWin(w){zTop++;w.style.zIndex=zTop;Object.keys(wmap).forEach(function(k){wmap[k].t.classList.toggle('act',wmap[k].w===w)})}
-function openWin(key){
-  if(wmap[key]){focusWin(wmap[key].w);return}
-  var cfg,isEmpty=key.indexOf('empty:')===0;
-  cfg=isEmpty?{title:key.slice(6),w:340}:WINDOWS[key];
-  var w=document.createElement('div');w.className='win';w.style.width=Math.min(cfg.w,innerWidth*0.94)+'px';
-  var off=(openN++%6)*28;
-  w.style.left=Math.max(8,Math.min(innerWidth-cfg.w-8,innerWidth/2-cfg.w/2+off-60))+'px';w.style.top=(30+off)+'px';
-  w.innerHTML='<div class="tb"><span></span><button class="x" type="button" aria-label="Закрыть">×</button></div>'+(isEmpty?'<div class="empty">[ПАПКА ПУСТА]</div>':'<img alt="" draggable="false">');
-  w.querySelector('.tb span').textContent=cfg.title;
-  if(!isEmpty)w.querySelector('img').src=cfg.src;
-  wins.appendChild(w);
-  var t=document.createElement('button');t.type='button';t.className='task';t.textContent=cfg.title;tasks.appendChild(t);
-  wmap[key]={w:w,t:t};
-  t.addEventListener('click',function(){focusWin(w)});
-  w.addEventListener('pointerdown',function(){focusWin(w)});
-  w.querySelector('.x').addEventListener('click',function(e){e.stopPropagation();w.remove();t.remove();delete wmap[key]});
-  var tb=w.querySelector('.tb'),dx,dy,drag=false;
-  tb.addEventListener('pointerdown',function(e){if(e.target.className==='x')return;drag=true;dx=e.clientX-w.offsetLeft;dy=e.clientY-w.offsetTop;tb.setPointerCapture(e.pointerId)});
-  tb.addEventListener('pointermove',function(e){if(!drag)return;w.style.left=Math.max(-w.offsetWidth+60,Math.min(innerWidth-60,e.clientX-dx))+'px';w.style.top=Math.max(0,e.clientY-dy)+'px'});
-  tb.addEventListener('pointerup',function(){drag=false});
-  focusWin(w)}
-function closeAllWins(){Object.keys(wmap).forEach(function(k){wmap[k].w.remove();wmap[k].t.remove();delete wmap[k]})}
-function tickClock(){var d=new Date();$('clock').textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
-setInterval(tickClock,10000);tickClock();
-
-/* ---------------- 3x5 шрифт ---------------- */
-var FONT={'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001',
+/* ---------------- 3x5 пиксельный шрифт для экранов ---------------- */
+const FONT = {'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001',
 '5':'111100111001111','6':'111100111101111','7':'111001010010010','8':'111101111101111','9':'111101111001111',
 'A':'111101111101101','B':'110101110101110','C':'111100100100111','D':'110101101101110','E':'111100110100111','F':'111100110100100',
-'<':'001010100010001','>':'100010001010100','/':'001001010100100','=':'000111000111000','{':'011010110010011','}':'110010011010110',
-';':'000010000010100','_':'000000000000111','#':'101111101111101'};
-var CH='0123456789ABCDEF<>/={};_#0123456789ABCDEF';
-function glyph(ctx,ch,x,y,col,sc){var g=FONT[ch];if(!g)return;ctx.fillStyle=col;
- for(var r=0;r<5;r++)for(var q=0;q<3;q++)if(g.charAt(r*3+q)==='1')ctx.fillRect(x+q*sc,y+r*sc,sc,sc)}
-function rnd(n){var x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+'R':'110101110101101','<':'001010100010001','>':'100010001010100','/':'001001010100100','=':'000111000111000','{':'011010110010011',
+'}':'110010011010110',';':'000010000010100','_':'000000000000111','#':'101111101111101',':':'000010000010000','.':'000000000000010',' ':'000000000000000'};
+const CH = '0123456789ABCDEF<>/={};_#';
+function glyph(ctx, ch, x, y, col){ const g = FONT[ch]; if(!g) return; ctx.fillStyle = col;
+  for(let r=0;r<5;r++) for(let q=0;q<3;q++) if(g.charCodeAt(r*3+q) === 49) ctx.fillRect(x+q, y+r, 1, 1); }
+function text(ctx, s, x, y, col){ for(const ch of s){ glyph(ctx, ch, x, y, col); x += 4; } }
 
-/* ---------------- комната: оживающие экраны ---------------- */
-var baseData=null,frame=null,roomReady=false;
-var masks={},ledGroups=[];
-var tmp={};
-function mkTmp(k){var r=SCREENS[k],c=document.createElement('canvas');c.width=r[2];c.height=r[3];tmp[k]={c:c,x:c.getContext('2d'),w:r[2],h:r[3]}}
-Object.keys(SCREENS).forEach(mkTmp);
-var rimg=new Image();
-rimg.onload=function(){
- var bc=document.createElement('canvas');bc.width=RS;bc.height=RS;var bx=bc.getContext('2d');bx.drawImage(rimg,0,0);
- var id=bx.getImageData(0,0,RS,RS);baseData=id.data;frame=rctx.createImageData(RS,RS);
- buildMasks();roomReady=true};
-rimg.src='assets/room.png';
-function buildMasks(){
- var d=baseData;
- function collect(k,test){var r=SCREENS[k],a=[];for(var y=r[1];y<r[1]+r[3];y++)for(var x=r[0];x<r[0]+r[2];x++){var i=(y*RS+x)*4;if(test(d[i],d[i+1],d[i+2]))a.push(y*RS+x)}return new Uint32Array(a)}
- masks.red=collect('red',function(r,g,b){return r>120});
- masks.top=collect('top',function(){return true});
- masks.right=collect('right',function(){return true});
- masks.main=collect('main',function(r,g,b){return g>135&&b>135&&g>r+4});
- masks.blinds=collect('blinds',function(r,g,b){return b>r+8&&(b>85||g>85)});
- // светодиоды на стойках
- var regs=[[30,280,230,400],[40,470,230,200],[770,500,190,240]],seen={};
- regs.forEach(function(R){for(var y=R[1];y<R[1]+R[3];y++)for(var x=R[0];x<R[0]+R[2];x++){var i=(y*RS+x)*4,r=d[i],g=d[i+1],b=d[i+2];
-  var yel=r>200&&g>170&&b<130,grn=g>170&&r<170&&b<150,cy=b>170&&g>150&&r<130,or=r>220&&g>100&&g<175&&b<90;
-  if(yel||grn||cy||or){var key=(x>>2)+','+(y>>2);if(!seen[key])seen[key]={px:[],ph:rnd(x*3+y)*6.28,sp:.8+rnd(y*7+x)*3.2};seen[key].px.push(y*RS+x)}}});
- Object.keys(seen).forEach(function(k){ledGroups.push(seen[k])})}
+/* =====================================================================
+   ЗВУК (WebAudio, синтез)
+   ===================================================================== */
+const SFX = {
+  ctx:null, out:null, on:C.sound.enabled, humNode:null,
+  init(){ if(this.ctx) return; const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.on ? C.sound.volume : 0; this.out.connect(this.ctx.destination); },
+  set(on){ this.on = on; if(this.out) this.out.gain.setTargetAtTime(on ? C.sound.volume : 0, this.ctx.currentTime, .05);
+    $('snd').textContent = on ? 'ЗВУК' : 'ТИХО'; $('snd0').textContent = on ? 'ЗВУК: ВКЛ' : 'ЗВУК: ВЫКЛ'; },
+  tone(f, d, type='square', v=.3, f2){ if(!this.ctx || !this.on) return; const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if(f2) o.frequency.exponentialRampToValueAtTime(f2, t+d);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t+d); o.connect(g); g.connect(this.out); o.start(t); o.stop(t+d+.02); },
+  noise(d, v=.3, f0=4000, f1=200){ if(!this.ctx || !this.on) return; const t = this.ctx.currentTime, n = this.ctx.sampleRate*d, b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), a = b.getChannelData(0);
+    for(let i=0;i<n;i++) a[i] = Math.random()*2-1; const s = this.ctx.createBufferSource(); s.buffer = b;
+    const fl = this.ctx.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.setValueAtTime(f0, t); fl.frequency.exponentialRampToValueAtTime(f1, t+d);
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t+d);
+    s.connect(fl); fl.connect(g); g.connect(this.out); s.start(t); },
+  click(){ this.tone(1400, .03, 'square', .12); },
+  open(){ this.tone(660, .06, 'square', .12); setTimeout(() => this.tone(990, .08, 'square', .1), 60); },
+  close(){ this.tone(520, .07, 'square', .1, 260); },
+  power(){ this.tone(15600, 1.2, 'sine', .05); this.tone(90, .25, 'sine', .5, 40); this.noise(.35, .15, 3000, 300); },
+  dive(){ this.noise(1.2, .25, 300, 4000); this.tone(110, 1.2, 'sawtooth', .06, 880); },
+  error(){ this.tone(140, .25, 'square', .25); setTimeout(() => this.tone(110, .35, 'square', .25), 220); },
+  hum(on){ if(!this.ctx || !C.sound.hum) return;
+    if(on && !this.humNode){ const o = this.ctx.createOscillator(), o2 = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 50; o2.type = 'sine'; o2.frequency.value = 100; g.gain.value = .035;
+      o.connect(g); o2.connect(g); g.connect(this.out); o.start(); o2.start(); this.humNode = {o, o2, g}; }
+    if(!on && this.humNode){ const h = this.humNode; h.g.gain.setTargetAtTime(0, this.ctx.currentTime, .1); setTimeout(() => { h.o.stop(); h.o2.stop(); }, 500); this.humNode = null; } }
+};
+function toggleSound(){ SFX.init(); SFX.set(!SFX.on); if(SFX.on) SFX.click(); }
+$('snd').addEventListener('click', toggleSound);
+$('snd0').addEventListener('click', e => { e.stopPropagation(); toggleSound(); });
+document.addEventListener('pointerdown', () => { SFX.init(); if(SFX.ctx && SFX.ctx.state === 'suspended') SFX.ctx.resume(); }, {capture:true});
 
-var COL={g:'#7fe08a',gd:'#3a8a4a',gh:'#d8ffd8'};
-function drawMain(t,st){var T=tmp.main,c=T.x,w=T.w,h=T.h,sc=2,GW=4*sc,GH=6*sc;
- c.fillStyle='#03100a';c.fillRect(0,0,w,h);
- var rowsN=Math.floor(h/GH)-1,line0=Math.floor(st/4);
- for(var i=0;i<rowsN;i++){var n=line0+i,y=h-GH*(i+2);
-  var ind=Math.floor(rnd(n*5+1)*4),len=4+Math.floor(rnd(n*7+2)*34),hi=rnd(n*11+3)>.9;
-  for(var k=0;k<len;k++){var sp=rnd(n*131+k)>.84;if(sp)continue;
-   var ch=CH.charAt(Math.floor(rnd(n*17+k*3)*CH.length));
-   glyph(c,ch,2+(ind+k)*GW,y+1,hi?COL.gh:(k<3?COL.g:COL.gd),sc)}}
- var py=h-GH-2;glyph(c,'>',2,py,COL.g,sc);if(Math.floor(st/6)%2===0){c.fillStyle=COL.g;c.fillRect(2+GW*2,py,GW-2,GH-2)}
- c.fillStyle='rgba(0,0,0,.28)';for(var y=0;y<h;y+=2)c.fillRect(0,y,w,1)}
-function drawRed(t,st){var T=tmp.red,c=T.x,w=T.w,h=T.h;
- c.fillStyle='#32091a';c.fillRect(0,0,w,h);var s=Math.floor(st/3),bar=14;
- for(var i=0;i<12;i++){var n=s+i,y=((i*bar-(st%3)*0)+h)%h;var wd=24+rnd(n*3+i)*(w-70),x0=10+rnd(n*5)*22;
-  c.fillStyle=rnd(n*7)>.82?'#ffe8ee':(rnd(n*9)>.5?'#ff7d92':'#b02c4a');c.fillRect(x0,(i*bar+h-(s%12)*bar+h)%h,wd,4)}
- var by=(st*3)%(h+30)-15;c.fillStyle='rgba(255,170,190,.22)';c.fillRect(0,by,w,10);
- c.fillStyle='rgba(0,0,0,.25)';for(var y=0;y<h;y+=3)c.fillRect(0,y,w,1)}
-function drawTop(t,st){var T=tmp.top,c=T.x,w=T.w,h=T.h;
- c.fillStyle='#09121c';c.fillRect(0,0,w,h);var s=Math.floor(st/2),cols=['#e8923a','#d04a4a','#4ab8d8','#d6c24a'];
- for(var i=0;i<9;i++){var bh=6+rnd(i*9+s*13)*(h-30);c.fillStyle=cols[i%4];c.fillRect(8+i*12,h-8-bh,8,bh)}
- for(var j=0;j<14;j++){c.fillStyle=rnd(j*7+s)>.5?'#6fe0a0':'#1d3a34';c.fillRect(6+j*8,4,4,4)}
- c.fillStyle='#4ab8d8';var py=h/2;for(var x=0;x<w;x+=3){var yy=6+Math.sin((x+st*3)/9)*3;c.fillRect(x,Math.round(yy+3),2,1)}}
-function drawRight(t,st){var T=tmp.right,c=T.x,w=T.w,h=T.h;
- c.fillStyle='#04070b';c.fillRect(0,0,w,h);var cols=['#e8d04a','#6fe0a0','#4ab8d8','#e05050','#c8d0d8'],line0=Math.floor(st/3);
- for(var i=0;i<Math.floor(h/7);i++){var n=line0+i,y=h-7*(i+1),x=4+Math.floor(rnd(n*3)*3)*6;
-  for(var k=0;k<5;k++){var wd=4+Math.floor(rnd(n*13+k)*26);c.fillStyle=cols[Math.floor(rnd(n*19+k*5)*cols.length)];c.fillRect(x,y,wd,3);x+=wd+4;if(x>w-8)break}}}
-function paintInto(k,fn,t,st){fn(t,st);var T=tmp[k],r=SCREENS[k],id=T.x.getImageData(0,0,T.w,T.h).data,m=masks[k],o=frame.data;
- for(var j=0;j<m.length;j++){var p=m[j],x=(p%RS)-r[0],y=((p/RS)|0)-r[1],s=(y*T.w+x)*4,q=p*4;o[q]=id[s];o[q+1]=id[s+1];o[q+2]=id[s+2]}}
-function drawBlinds(t,st){var m=masks.blinds,o=frame.data,d=baseData,band=((t*90)%(540+240))-120;
- for(var j=0;j<m.length;j++){var p=m[j],x=p%RS,y=(p/RS)|0,q=p*4;
-  var f=.45+.75*rnd((x>>3)*31+(y>>2)*17+Math.floor(st/3)*7);
-  var bb=Math.max(0,1-Math.abs((x-300)-band)/70)*0.9;
-  var k=Math.min(2.2,f+bb);o[q]=Math.min(255,d[q]*k);o[q+1]=Math.min(255,d[q+1]*k);o[q+2]=Math.min(255,d[q+2]*k)}}
-function renderRoom(t){
- if(!roomReady)return false;
- var st=Math.floor(t*CONFIG.roomFps);frame.data.set(baseData);
- paintInto('main',drawMain,t,st);paintInto('red',drawRed,t,st);paintInto('top',drawTop,t,st);paintInto('right',drawRight,t,st);
- drawBlinds(t,st);
- var o=frame.data,d=baseData;
- for(var g=0;g<ledGroups.length;g++){var L=ledGroups[g],on=Math.sin(t*L.sp+L.ph)>-0.25,kk=on?1:.28;
-  for(var j=0;j<L.px.length;j++){var q=L.px[j]*4;o[q]=d[q]*kk;o[q+1]=d[q+1]*kk;o[q+2]=d[q+2]*kk}}
- rctx.putImageData(frame,0,0);return true}
+/* =====================================================================
+   КОМНАТА: базовая картинка + оживающие экраны (рисуются по маске)
+   ===================================================================== */
+const roomC = $('room'), rctx = roomC.getContext('2d');
+const RS = 1024;
+const layer = document.createElement('canvas'); layer.width = layer.height = RS; const lctx = layer.getContext('2d');
+let roomImg = null, maskS = null, maskT = null, roomReady = false, roomStep = -1;
+const scr = C.room.screens.map(s => { const c = document.createElement('canvas'); c.width = Math.ceil(s.rect[2]/4); c.height = Math.ceil(s.rect[3]/4);
+  return Object.assign({c, x:c.getContext('2d')}, s); });
 
-/* ---------------- гомография ---------------- */
-function solve(A,b){var n=b.length,i,j,k;for(i=0;i<n;i++){var m=i;for(j=i+1;j<n;j++)if(Math.abs(A[j][i])>Math.abs(A[m][i]))m=j;
- var t=A[i];A[i]=A[m];A[m]=t;var tb=b[i];b[i]=b[m];b[m]=tb;
- for(j=i+1;j<n;j++){var f=A[j][i]/A[i][i];for(k=i;k<n;k++)A[j][k]-=f*A[i][k];b[j]-=f*b[i]}}
- var x=new Array(n);for(i=n-1;i>=0;i--){var s=b[i];for(j=i+1;j<n;j++)s-=A[i][j]*x[j];x[i]=s/A[i][i]}return x}
-function matrixFor(q){var src=[[0,0],[SW,0],[SW,SH],[0,SH]],A=[],b=[];
- for(var i=0;i<4;i++){var x=src[i][0],y=src[i][1],X=q[i][0],Y=q[i][1];
-  A.push([x,y,1,0,0,0,-x*X,-y*X]);b.push(X);A.push([0,0,0,x,y,1,-x*Y,-y*Y]);b.push(Y)}
- var h=solve(A,b);return 'matrix3d('+[h[0],h[3],0,h[6],h[1],h[4],0,h[7],0,0,1,0,h[2],h[5],0,1].join(',')+')'}
+// Содержимое экранов рисуется в 4 раза меньшем разрешении и растягивается — пиксели совпадают с пикселями сцены.
+const DRAW = {
+  log(x, w, h, st, col){ x.fillStyle = col[0]; x.fillRect(0,0,w,h);
+    for(let i=0;i<h;i+=3){ const n = i/3 + st; const len = 4 + Math.floor(rnd(n*3.1)*(w-12)), x0 = 2 + Math.floor(rnd(n*5.7)*4);
+      x.fillStyle = rnd(n*7.3) > .85 ? col[3] : rnd(n*9.1) > .5 ? col[2] : col[1]; x.fillRect(x0, h - 3 - ((i + 0) % h), len, 1); }
+    x.fillStyle = col[3]; x.fillRect(0, (st*2) % h, w, 1); },
+  bars(x, w, h, st, col){ x.fillStyle = col[0]; x.fillRect(0,0,w,h); const s = Math.floor(st/2);
+    for(let i=0;i<7;i++){ const bh = 2 + Math.floor(rnd(i*9 + s*13)*(h-6)); x.fillStyle = col[1 + i%3]; x.fillRect(2 + i*4, h-2-bh, 3, bh); }
+    for(let j=0;j<w/3;j++){ x.fillStyle = rnd(j*7 + s) > .5 ? col[4] : col[0]; x.fillRect(1 + j*3, 1, 2, 1); } },
+  code(x, w, h, st, col){ x.fillStyle = col[0]; x.fillRect(0,0,w,h);
+    const top = Math.floor(st/3);
+    for(let r=0; r<Math.floor(h/3); r++){ const n = top + r, ind = Math.floor(rnd(n*5)*4)*2, len = 3 + Math.floor(rnd(n*7)*(w/2.4));
+      let px = 3 + ind; const y = 2 + r*3;
+      while(px < 3 + ind + len && px < w-3){ const wd = 1 + Math.floor(rnd(n*31 + px)*5); x.fillStyle = rnd(n*13 + px) > .82 ? col[2] : col[1]; x.fillRect(px, y, wd, 1); px += wd + 1; } }
+    if(Math.floor(st/5) % 2) { x.fillStyle = col[3]; x.fillRect(3, h-4, 2, 2); } },
+  graph(x, w, h, st, col){ x.fillStyle = col[0]; x.fillRect(0,0,w,h);
+    for(let i=0;i<w;i++){ const v = Math.sin((i + st)*.35)*.3 + rnd(Math.floor((i + st)/2))*.5; const y = Math.floor(h - 2 - v*(h-4));
+      x.fillStyle = col[2]; x.fillRect(i, clamp(y,1,h-2), 1, 1); }
+    for(let j=0;j<4;j++){ x.fillStyle = col[1 + (j + Math.floor(st/4)) % 4]; x.fillRect(2 + j*6, 1, 4, 1); } }
+};
 
-/* ---------------- камера первого экрана ---------------- */
-var Q0=CONFIG.monitorGlass;
-var vw,vh,k0,ox0,oy0,Qv0,Qend,curQ;
-function layout(){
- vw=innerWidth;vh=innerHeight;
- k0=Math.max(vw/PW,vh/PW)*CONFIG.zoom;var f=CONFIG.focus;
- ox0=Math.min(0,Math.max(vw-PW*k0,vw/2-f[0]*k0));oy0=Math.min(0,Math.max(vh-PW*k0,vh/2-f[1]*k0));
- Qv0=Q0.map(function(p){return [p[0]*k0+ox0,p[1]*k0+oy0]});
- var s=Math.max(vw/SW,vh/SH),w=SW*s,h=SH*s,x=(vw-w)/2,y=(vh-h)/2;
- Qend=[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
- applyOuter()}
-addEventListener('resize',function(){layout();if(state==='inside')prepOS(1)});
-function sstep(x){x=Math.min(1,Math.max(0,x));return x*x*x*(x*(6*x-15)+10)}
-var dive=0;
-function applyOuter(){
- var e=sstep(dive);
- var Q=Qv0.map(function(p,i){return [p[0]+(Qend[i][0]-p[0])*e,p[1]+(Qend[i][1]-p[1])*e]});curQ=Q;
- var w0=Qv0[1][0]-Qv0[0][0],w1=Q[1][0]-Q[0][0],k=k0*(w1/w0);
- var pc=[(Q0[0][0]+Q0[1][0]+Q0[2][0]+Q0[3][0])/4,(Q0[0][1]+Q0[1][1]+Q0[2][1]+Q0[3][1])/4];
- var qc=[(Q[0][0]+Q[1][0]+Q[2][0]+Q[3][0])/4,(Q[0][1]+Q[1][1]+Q[2][1]+Q[3][1])/4];
- paint.style.transform='translate('+(qc[0]-pc[0]*k)+'px,'+(qc[1]-pc[1]*k)+'px) scale('+k+')';
- screenC.style.transform=matrixFor(Q)}
+Promise.all([loadImg(C.room.src), loadImg(C.room.screensMask), loadImg(C.room.twinkleMask)]).then(([a,b,c]) => {
+  roomImg = a; maskS = b; maskT = c; roomReady = !!a; renderRoom(0, true);
+});
 
-/* ---------------- переход в ОС ---------------- */
-var osE=0; // 0 = комната во весь экран (как видно с монитора), 1 = рабочий стол
+function renderRoom(now, force){
+  if(!roomReady) return;
+  const st = Math.floor(now/1000*T.fps);
+  if(st === roomStep && !force) return;            // покадрово: 8–12 к/с, не каждый кадр экрана
+  if(reduced && roomStep >= 0 && !force) return;    // при reduced-motion комната статична
+  roomStep = st;
+  rctx.imageSmoothingEnabled = false;
+  rctx.drawImage(roomImg, 0, 0);
+  if(maskS){
+    lctx.globalCompositeOperation = 'source-over'; lctx.clearRect(0,0,RS,RS); lctx.imageSmoothingEnabled = false;
+    scr.forEach(s => { DRAW[s.kind](s.x, s.c.width, s.c.height, st, s.colors); lctx.drawImage(s.c, s.rect[0], s.rect[1], s.c.width*4, s.c.height*4); });
+    lctx.globalCompositeOperation = 'destination-in'; lctx.drawImage(maskS, 0, 0);
+    rctx.drawImage(layer, 0, 0);
+  }
+  if(maskT){
+    lctx.globalCompositeOperation = 'source-over'; lctx.clearRect(0,0,RS,RS); lctx.fillStyle = 'rgba(0,0,0,.78)';
+    for(let y=0;y<RS;y+=8) for(let x=0;x<RS;x+=8) if(rnd(x*.13 + y*7.7 + Math.floor(st/2)*3.3) < C.room.twinkle) lctx.fillRect(x, y, 8, 8);
+    lctx.globalCompositeOperation = 'destination-in'; lctx.drawImage(maskT, 0, 0);
+    rctx.drawImage(layer, 0, 0);
+  }
+}
+
+/* =====================================================================
+   ЭКРАН 1: монитор, код-дождь, гомография экрана
+   ===================================================================== */
+const scene = $('scene'), paint = $('paint'), crt = $('crt'), glow = $('glow'), hint = $('hint');
+const CW = C.crt.w, CH_ = C.crt.h, CROP = C.crt.crop;
+crt.width = CW*2; crt.height = CH_*2; crt.style.width = CW + 'px'; crt.style.height = CH_ + 'px';  // ×2 — чтобы нарисовать скан-линии
+const cx = crt.getContext('2d');
+const lo = document.createElement('canvas'); lo.width = CW; lo.height = CH_; const lx = lo.getContext('2d');  // «настоящее» разрешение ЭЛТ
+const rain = document.createElement('canvas'); rain.width = CW; rain.height = CH_; const rx = rain.getContext('2d');
+
+function solve(A, b){ const n = b.length;
+  for(let i=0;i<n;i++){ let m = i; for(let j=i+1;j<n;j++) if(Math.abs(A[j][i]) > Math.abs(A[m][i])) m = j;
+    [A[i],A[m]] = [A[m],A[i]]; [b[i],b[m]] = [b[m],b[i]];
+    for(let j=i+1;j<n;j++){ const f = A[j][i]/A[i][i]; for(let k=i;k<n;k++) A[j][k] -= f*A[i][k]; b[j] -= f*b[i]; } }
+  const x = new Array(n); for(let i=n-1;i>=0;i--){ let s = b[i]; for(let j=i+1;j<n;j++) s -= A[i][j]*x[j]; x[i] = s/A[i][i]; } return x; }
+// matrix3d, который переводит прямоугольник w×h в четырёхугольник q (гомография по 4 углам)
+function homography(w, h, q){ const src = [[0,0],[w,0],[w,h],[0,h]], A = [], b = [];
+  for(let i=0;i<4;i++){ const [x,y] = src[i], [X,Y] = q[i]; A.push([x,y,1,0,0,0,-x*X,-y*X]); b.push(X); A.push([0,0,0,x,y,1,-x*Y,-y*Y]); b.push(Y); }
+  const m = solve(A, b); return `matrix3d(${[m[0],m[3],0,m[6], m[1],m[4],0,m[7], 0,0,1,0, m[2],m[5],0,1].join(',')})`; }
+
+const G = C.monitor.glass;
+let vw, vh, k0, ox0, oy0, Qv0, Qend, curQ, dive = 0;
+function layoutScene(){
+  vw = innerWidth; vh = innerHeight;
+  const [sx0, sy0, sx1, sy1] = C.monitor.safe, P = 1024;
+  // масштаб: заполнить экран, но так, чтобы safe-область (монитор + клавиатура) никогда не обрезалась
+  k0 = Math.min(Math.max(vw/P, vh/P), Math.min(vw/(sx1-sx0), vh/(sy1-sy0)));
+  const fx = (sx0+sx1)/2, fy = (sy0+sy1)/2;
+  ox0 = P*k0 >= vw ? clamp(vw/2 - fx*k0, vw - P*k0, 0) : vw/2 - fx*k0;
+  oy0 = P*k0 >= vh ? clamp(vh/2 - fy*k0, vh - P*k0, 0) : vh/2 - fy*k0;
+  Qv0 = G.map(([x,y]) => [x*k0 + ox0, y*k0 + oy0]);
+  // конечный прямоугольник экрана: покрывает весь вьюпорт (+4% чтобы рамка ушла за край)
+  const s = Math.max(vw/CW, vh/CH_)*1.04, w = CW*s, h = CH_*s, x = (vw-w)/2, y = (vh-h)/2;
+  Qend = [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+  const gx = Math.min(...Qv0.map(p=>p[0])), gy = Math.min(...Qv0.map(p=>p[1])), gw = Math.max(...Qv0.map(p=>p[0])) - gx, gh = Math.max(...Qv0.map(p=>p[1])) - gy;
+  Object.assign(glow.style, {left:(gx - gw*.35)+'px', top:(gy - gh*.35)+'px', width:(gw*1.7)+'px', height:(gh*1.7)+'px'});
+  applyCamera();
+}
+function applyCamera(){
+  const e = ease(dive);
+  const Q = Qv0.map((p,i) => [lerp(p[0], Qend[i][0], e), lerp(p[1], Qend[i][1], e)]); curQ = Q;
+  // фото двигается вместе со стеклом: масштаб по ширине, центр стекла к центру Q
+  const w0 = (Qv0[1][0]-Qv0[0][0] + Qv0[2][0]-Qv0[3][0])/2, w1 = (Q[1][0]-Q[0][0] + Q[2][0]-Q[3][0])/2, k = k0*w1/w0;
+  const pc = G.reduce((a,p) => [a[0]+p[0]/4, a[1]+p[1]/4], [0,0]), qc = Q.reduce((a,p) => [a[0]+p[0]/4, a[1]+p[1]/4], [0,0]);
+  paint.style.transform = `translate(${qc[0]-pc[0]*k}px,${qc[1]-pc[1]*k}px) scale(${k})`;
+  crt.style.transform = homography(CW, CH_, Q);
+  glow.style.transform = `translate(${(qc[0] - (Qv0[0][0]+Qv0[2][0])/2)}px,${(qc[1] - (Qv0[0][1]+Qv0[2][1])/2)}px) scale(${w1/w0})`;
+}
+
+// Код-дождь: колонки символов 3x5 в ячейках 4x6, скатываются сверху вниз
+const RC = CW/4|0, RR = CH_/6|0, GL = [C.colors.hi, C.colors.phos, C.colors.mid, C.colors.dim, '#0f2a16'];
+const cols = Array.from({length:RC}, (_,c) => ({d: rnd(c)*900, v: 9 + rnd(c+99)*16, L: 5 + rnd(c+7)*14}));
+function drawRain(ms){
+  const t = Math.floor(ms/1000*T.rainFps)/T.rainFps*1000;   // время квантуется под rainFps
+  rx.fillStyle = '#020503'; rx.fillRect(0,0,CW,CH_);
+  for(let c=0;c<RC;c++){ const ci = cols[c], head = (t - ci.d)*ci.v/1000; if(head < 0) continue;
+    for(let r=0;r<RR;r++){ const d = head - r; if(d < 0) break;
+      const lv = d < 1 ? 0 : d < 2 ? 1 : d < ci.L*.5 ? 2 : d < ci.L ? 3 : 4;
+      if(lv === 4 && rnd(c*13 + r*7) > .55) continue;
+      const ch = CH[Math.floor(rnd(c*31 + r*7 + Math.floor(t/(d < 3 ? 80 : 600)))*CH.length)];
+      glyph(rx, ch, c*4, r*6 + 1, GL[lv]); } }
+}
+// копия lo → видимый canvas ×2 + скан-линии
+function present(){
+  cx.imageSmoothingEnabled = false; cx.drawImage(lo, 0, 0, CW*2, CH_*2);
+  cx.fillStyle = 'rgba(0,0,0,.28)'; for(let y=1;y<CH_*2;y+=2) cx.fillRect(0, y, CW*2, 1);
+}
+function drawRoomOnCrt(hFrac){
+  lx.fillStyle = '#000'; lx.fillRect(0,0,CW,CH_);
+  const h = Math.max(1, Math.round(CH_*hFrac)), y = Math.round((CH_-h)/2);
+  lx.imageSmoothingEnabled = true; lx.imageSmoothingQuality = 'high';
+  const sh = CROP[3]*hFrac, sy = CROP[1] + (CROP[3]-sh)/2;
+  if(roomReady) lx.drawImage(roomC, CROP[0], sy, CROP[2], sh, 0, y, CW, h);
+  if(hFrac < 1){ lx.fillStyle = C.colors.hi; lx.fillRect(0, y, CW, 1); lx.fillRect(0, y+h-1, CW, 1); }
+}
+
+let state = 'boot', t0 = performance.now(), lastCrt = -1;
+function crtFrame(now){
+  const el = now - t0, a = T.boot, b = a + T.rain, c = b + T.collapse, d = c + T.line, e = d + T.unfold;
+  if(state === 'boot' || state === 'rain'){
+    if(reduced || el >= e){ toReady(); }
+    else if(el < a){ lx.fillStyle = '#020503'; lx.fillRect(0,0,CW,CH_); if(Math.floor(el/250)%2) text(lx, '_', 4, 4, C.colors.phos); text(lx, 'BANY OS', 4, CH_-10, C.colors.dim); }
+    else if(el < b){ if(state === 'boot'){ state = 'rain'; SFX.power(); } drawRain(el - a); lx.drawImage(rain, 0, 0); }
+    else if(el < c){ const u = Math.floor((el-b)/T.collapse*6)/6, h = Math.max(2, Math.round(CH_*(1-u)*(1-u)));
+      lx.fillStyle = '#000'; lx.fillRect(0,0,CW,CH_); lx.imageSmoothingEnabled = false; lx.drawImage(rain, 0, 0, CW, CH_, 0, Math.round((CH_-h)/2), CW, h); }
+    else if(el < d){ lx.fillStyle = '#000'; lx.fillRect(0,0,CW,CH_); const w = Math.round(CW*(1 - (el-c)/T.line*.15));
+      lx.fillStyle = C.colors.hi; lx.fillRect((CW-w)>>1, (CH_>>1) - 1, w, 2); }
+    else { const u = Math.floor((el-d)/T.unfold*10)/10; drawRoomOnCrt(Math.max(.02, 1-(1-u)*(1-u))); }
+    present();
+    glow.style.opacity = state === 'rain' ? .55 : .35;
+  } else if(state === 'ready' || state === 'dive' || state === 'surf'){
+    if(roomStep !== lastCrt){ lastCrt = roomStep; drawRoomOnCrt(1); present(); }
+    glow.style.opacity = .5;
+  }
+}
+function toReady(){ state = 'ready'; hint.classList.add('on'); $('skip').hidden = true; lastCrt = -1; }
+function skipIntro(){ if(state === 'boot' || state === 'rain'){ toReady(); } }
+$('skip').addEventListener('click', e => { e.stopPropagation(); skipIntro(); });
+
+function inQuad(x, y){ const q = curQ; if(!q) return false; let s = 0;
+  for(let i=0;i<4;i++){ const a = q[i], b = q[(i+1)%4], cr = (b[0]-a[0])*(y-a[1]) - (b[1]-a[1])*(x-a[0]); const sg = cr > 0 ? 1 : -1; if(i === 0) s = sg; else if(sg !== s) return false; } return true; }
+scene.addEventListener('click', e => {
+  if(state === 'boot' || state === 'rain') return skipIntro();
+  if(state === 'ready' && inQuad(e.clientX, e.clientY)) startDive();
+});
+hint.addEventListener('click', () => state === 'ready' && startDive());
+scene.addEventListener('pointermove', e => scene.classList.toggle('hot', state === 'ready' && inQuad(e.clientX, e.clientY)));
+
+/* =====================================================================
+   ЭКРАН 2: ОС
+   ===================================================================== */
+const os = $('os'), desk = $('desk'), roomwin = $('roomwin'), roomwrap = $('roomwrap'), taskbar = $('taskbar'), fx = $('fx');
+let osE = 0;
+
+// Размеры: иконки — целый масштаб пикселей (32 → 64/96/... физических пикселей), комната — без обрезки
+function layoutOS(){
+  const dpr = window.devicePixelRatio || 1, narrow = matchMedia('(max-aspect-ratio:4/5),(max-width:640px)').matches;
+  const icoTarget = narrow ? Math.min(48, (vw - 32)/4 - 24) : (vh < 700 ? 48 : 64);
+  const icoDev = Math.max(1, Math.floor(icoTarget*dpr/32))*32;            // кратно 32 физическим пикселям
+  const ico = icoDev/dpr; root.style.setProperty('--ico', ico + 'px');
+  const tb = parseFloat(getComputedStyle(root).getPropertyValue('--tb')) || 40;
+  let D;
+  if(narrow){ const rowsH = 3*(ico + 40) + 16; D = Math.min(vw - 32, vh - tb - rowsH - 24 - 48); }
+  else { D = Math.min(vh - tb - 24 - 40, vw - 2*(2*(ico + 40) + 8) - 64); }
+  D = Math.max(160, D);
+  // если комнату можно показать 1:1 или крупнее — берём целый множитель физических пикселей
+  const dev = D*dpr; D = (dev >= RS ? Math.floor(dev/RS)*RS : Math.floor(dev))/dpr;
+  root.style.setProperty('--room', D + 'px');
+  // на телефоне все иконки в одну сетку 4×3, на десктопе — по бокам от комнаты
+  iconEls.forEach((el, i) => { const p = $(narrow || C.icons[i].side === 'left' ? 'iconsL' : 'iconsR'); if(el.parentNode !== p) p.appendChild(el); });
+  roomC.classList.toggle('px', D*dpr >= RS);   // увеличение — чёткие пиксели, уменьшение — сглаживание
+}
+
 function prepOS(e){
- osE=e;var wrap=$('roomwrap');
- // сбросить трансформ, чтобы взять итоговый прямоугольник
- roomC.style.transform='none';var R=wrap.getBoundingClientRect(),sf=R.width/RS;
- var s=Math.max(vw/SW,vh/SH),f=CROP.w/SW;
- var visW=vw/s*f; // ширина видимой части в px комнаты
- var cxr=CROP.x+CROP.w/2,cyr=CROP.y+CROP.h/2;
- var m=vw/(visW*sf);
- var O=[R.left+R.width/2,R.top+R.height/2],cs=[R.left+cxr*sf,R.top+cyr*sf];
- var tx=vw/2-O[0]-m*(cs[0]-O[0]),ty=vh/2-O[1]-m*(cs[1]-O[1]);
- var ee=sstep(e),sc=Math.pow(m,1-ee);
- roomC.style.transform='translate('+(tx*(1-ee))+'px,'+(ty*(1-ee))+'px) scale('+sc+')';
- // чтобы комната при увеличении была поверх всего
- wrap.style.zIndex=e<1?30:'auto';
- $('roomwin').style.opacity=e<1?(ee>0.35?(ee-0.35)/0.65:0):1;
- $('roomwin').style.borderColor=ee>0.5?'':'transparent';
- os.style.opacity=Math.min(1,e*9+ (e>0?0:0));
- var show=ee>0.55;iconEls.forEach(function(el,i){if(show&&!el.classList.contains('pop')){setTimeout(function(){el.classList.add('pop')},i*55)}});
- if(e<=0.001){iconEls.forEach(function(el){el.classList.remove('pop')})}
- taskbar.classList.toggle('up',ee>0.8)}
+  osE = e; const ee = ease(e);
+  roomC.style.transform = 'none';
+  const R = roomwrap.getBoundingClientRect(), f = R.width/RS;
+  const pc = [(CROP[0] + CROP[2]/2)*f, (CROP[1] + CROP[3]/2)*f];
+  const qw = Qend[1][0] - Qend[0][0], m = qw/(CROP[2]*f);       // такой же кадр, каким был экран в конце падения
+  const qc = [vw/2, vh/2], c1 = [R.left + pc[0], R.top + pc[1]];
+  const s = Math.pow(m, 1 - ee), T_ = [lerp(qc[0], c1[0], ee), lerp(qc[1], c1[1], ee)];
+  roomC.style.transform = ee >= 1 ? 'none' : `translate(${T_[0] - R.left - s*pc[0]}px,${T_[1] - R.top - s*pc[1]}px) scale(${s})`;
+  roomwin.classList.toggle('frame', ee > .85);
+  roomwrap.style.overflow = ee >= 1 ? 'hidden' : 'visible';
+  taskbar.classList.toggle('up', ee > .7);
+  if(ee > .6) showIcons(); else hideIcons();
+}
+const iconEls = [];
+let iconsShown = false;
+function showIcons(){ if(iconsShown) return; iconsShown = true;
+  iconEls.forEach((el, i) => { if(reduced) el.classList.add('show'); else el._t = setTimeout(() => el.classList.add('show'), i*T.iconStagger); }); }
+function hideIcons(){ if(!iconsShown) return; iconsShown = false; iconEls.forEach(el => { clearTimeout(el._t); el.classList.remove('show'); }); }
 
-/* ---------------- код-дождь на экране монитора ---------------- */
-var GS=2,GW=4*GS,GH=6*GS,rows=Math.floor(SH/GH),cols=Math.floor(SW/GW);
-var GL=['#d8ffd8','#7fe08a','#4e9458','#376f3f','#27502e'];
-var colInfo=[];for(var c=0;c<cols;c++)colInfo.push({d:rnd(c)*1100,v:75+rnd(c+99)*110,L:60+rnd(c+7)*200});
-var rain=document.createElement('canvas');rain.width=SW;rain.height=SH;var xctx=rain.getContext('2d');
-function drawRain(t){xctx.fillStyle='#030a05';xctx.fillRect(0,0,SW,SH);
- for(var c=0;c<cols;c++){var ci=colInfo[c];var head=(t-ci.d)*ci.v/1000;if(head<0)continue;
-  for(var r=0;r<rows;r++){var y=r*GH,dist=head-y;if(dist<0)continue;
-   var lim=t<CONFIG.rainMs?ci.L:ci.L*4;if(dist>lim+SH)continue;
-   var lv=dist<GH?0:Math.min(4,1+Math.floor((dist-GH)/Math.max(34,lim/3.2)));if(dist>lim)lv=4;
-   var ch=CH.charAt(Math.floor(rnd(c*31+r*7+Math.floor(t/(dist<GH*3?60:380)))*CH.length));
-   glyph(xctx,ch,c*GW+1,y+1,GL[lv],GS)}}}
-function scanlines(ctx){ctx.fillStyle='rgba(0,0,0,.2)';for(var y=0;y<SH;y+=3)ctx.fillRect(0,y,SW,1)}
+function startDive(){
+  if(state !== 'ready') return;
+  hint.classList.remove('on'); scene.classList.remove('hot'); SFX.dive();
+  if(reduced){ dive = 1; applyCamera(); enterOS(); osE = 1; prepOS(1); state = 'inside'; return; }
+  state = 'dive';
+}
+function enterOS(){
+  layoutOS(); os.classList.add('on'); os.setAttribute('aria-hidden', 'false');
+  scene.style.visibility = 'hidden'; hint.style.visibility = 'hidden'; $('corner').hidden = true;
+  fx.classList.toggle('flick', !reduced); SFX.hum(true);
+}
+function leaveOS(){
+  if(state !== 'inside') return;
+  closeAll(); closeMenu(); SFX.close(); SFX.hum(false);
+  if(reduced){ exitToScene(); dive = 0; applyCamera(); toReady(); return; }
+  state = 'osout';
+}
+function exitToScene(){
+  os.classList.remove('on'); os.setAttribute('aria-hidden', 'true'); taskbar.classList.remove('up'); hideIcons(); roomwin.classList.remove('frame');
+  scene.style.visibility = 'visible'; hint.style.visibility = 'visible'; $('corner').hidden = false; fx.classList.remove('flick');
+}
 
-/* ---------------- состояния ---------------- */
-var T0=performance.now(),state='rain',diveDir=0,prev=T0,osDir=0;
-function reset(){T0=performance.now();state='rain';dive=0;diveDir=0;osE=0;osDir=0;hint.classList.remove('on');view.classList.remove('hot');
- closeAllWins();view.style.visibility='visible';os.style.opacity=0;os.classList.remove('on');taskbar.classList.remove('up');
- iconEls.forEach(function(el){el.classList.remove('pop')});applyOuter()}
-function startDive(){if(state!=='ready')return;state='diving';diveDir=1;hint.classList.remove('on');view.classList.remove('hot')}
-function startBack(){if(state!=='inside')return;state='osout';osDir=-1;closeAllWins()}
-function inQuad(x,y){var q=curQ;if(!q)return false;var s=0;
- for(var i=0;i<4;i++){var a=q[i],b=q[(i+1)%4],cr=(b[0]-a[0])*(y-a[1])-(b[1]-a[1])*(x-a[0]);if(i===0)s=cr>0?1:-1;else if((cr>0?1:-1)!==s)return false}return true}
-view.addEventListener('pointerdown',function(e){if(state==='ready'&&inQuad(e.clientX,e.clientY))startDive()});
-view.addEventListener('pointermove',function(e){view.classList.toggle('hot',state==='ready'&&inQuad(e.clientX,e.clientY))});
-addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&state==='ready'){e.preventDefault();startDive()}else if(e.key==='Escape')startBack()});
-$('exit').addEventListener('click',startBack);$('start').addEventListener('click',function(){openWin('terminal')});
-$('replay').addEventListener('click',reset);
+/* ---------------- иконки ---------------- */
+C.icons.forEach(ic => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'icon';
+  b.innerHTML = '<span class="ico px"></span><span class="lb"></span>';
+  b.querySelector('.ico').style.backgroundPosition = `calc(var(--ico) * ${-ic.icon}) 0`;
+  b.querySelector('.lb').textContent = ic.label;
+  b.addEventListener('click', () => { SFX.click(); openWin(ic.id); });
+  $(ic.side === 'left' ? 'iconsL' : 'iconsR').appendChild(b); iconEls.push(b);
+});
+
+/* ---------------- окна ---------------- */
+const winsEl = $('wins'), tasksEl = $('tasks');
+const open = {}; let z = 10, cascade = 0;
+function focusWin(id){ if(!open[id]) return; open[id].el.style.zIndex = ++z;
+  Object.keys(open).forEach(k => { open[k].el.classList.toggle('inactive', k !== id); open[k].task.classList.toggle('act', k === id); }); }
+function openWin(id){
+  if(open[id]){ focusWin(id); return; }
+  const cfg = C.windows[id]; if(!cfg) return;
+  const el = document.createElement('section'); el.className = 'win'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', cfg.title);
+  el.innerHTML = '<div class="tbar"><span class="tt"></span><button class="x" type="button" aria-label="Закрыть">X</button></div><div class="body"></div>';
+  el.querySelector('.tt').textContent = cfg.title;
+  const body = el.querySelector('.body');
+  const narrow = innerWidth < 640, W = Math.round(narrow ? innerWidth - 16 : Math.min(cfg.w, innerWidth - 32));
+  el.style.width = W + 'px';
+  const H = innerHeight - parseFloat(getComputedStyle(root).getPropertyValue('--tb'));
+  body.style.maxHeight = (H - (narrow ? 48 : 96)) + 'px';
+  const cleanup = (APPS[cfg.type] || APPS.html)(body, cfg, id) || null;
+  winsEl.appendChild(el);
+  const off = (cascade++ % 6)*24;
+  const left = narrow ? 8 : Math.round(clamp(innerWidth/2 - W/2 + off - 60, 8, innerWidth - W - 8));
+  const top = narrow ? 8 + (cascade % 3)*8 : Math.round(clamp(40 + off, 8, H - 120));
+  el.style.left = left + 'px'; el.style.top = top + 'px';
+  const task = document.createElement('button'); task.type = 'button'; task.className = 'task'; task.textContent = cfg.title;
+  task.addEventListener('click', () => { SFX.click(); focusWin(id); }); tasksEl.appendChild(task);
+  open[id] = {el, task, cleanup};
+  el.addEventListener('pointerdown', () => focusWin(id));
+  el.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); closeWin(id); });
+  dragify(el, el.querySelector('.tbar'));
+  focusWin(id); SFX.open();
+  if(cfg.effect === 'glitch') glitch();
+}
+function closeWin(id){ const w = open[id]; if(!w) return; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; SFX.close();
+  const rest = Object.keys(open); if(rest.length) focusWin(rest.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b)); }
+function closeAll(){ Object.keys(open).forEach(id => { const w = open[id]; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; }); }
+function dragify(el, handle){
+  let sx, sy, ox, oy, on = false;
+  handle.addEventListener('pointerdown', e => { if(e.target.closest('.x')) return; on = true; sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop; handle.setPointerCapture(e.pointerId); e.preventDefault(); });
+  handle.addEventListener('pointermove', e => { if(!on) return;
+    // только целые пиксели
+    el.style.left = Math.round(clamp(ox + e.clientX - sx, 60 - el.offsetWidth, innerWidth - 60)) + 'px';
+    el.style.top = Math.round(clamp(oy + e.clientY - sy, 0, innerHeight - 80)) + 'px'; });
+  const end = () => { on = false; }; handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+}
+winsEl.addEventListener('click', e => { const a = e.target.closest('[data-open]'); if(a){ e.preventDefault(); openWin(a.dataset.open); } });
+
+function glitch(){
+  SFX.error(); if(reduced) return;
+  const fl = $('flash'); let n = 0;
+  const iv = setInterval(() => { n++;
+    os.style.transform = n < 8 ? `translate(${Math.round((rnd(n*3.3)-.5)*16)}px,${Math.round((rnd(n*7.7)-.5)*10)}px)` : '';
+    fl.style.opacity = n < 8 && n % 2 ? .55 : 0;
+    if(n >= 8) clearInterval(iv); }, 1000/12);
+}
+
+/* =====================================================================
+   APPS — содержимое окон
+   ===================================================================== */
+const APPS = {
+  html(body, cfg){ body.innerHTML = cfg.html;
+    body.querySelectorAll('canvas[data-avatar]').forEach(cv => loadImg(cv.dataset.avatar).then(im => { if(!im) return; const x = cv.getContext('2d'); x.imageSmoothingQuality = 'high';
+      const s = Math.min(im.width, im.height); x.drawImage(im, (im.width-s)/2, (im.height-s)/2, s, s, 0, 0, cv.width, cv.height); })); },
+
+  img(body, cfg){ body.classList.add('flush'); const im = new Image(); im.src = cfg.src; im.alt = cfg.title; im.draggable = false; body.appendChild(im);
+    if(cfg.caption){ const p = document.createElement('p'); p.textContent = cfg.caption; p.style.cssText = 'padding:12px 16px;margin:0;line-height:1.35'; body.appendChild(p); } },
+
+  terminal(body){
+    body.classList.add('flush'); const t = document.createElement('div'); t.className = 'term'; body.appendChild(t);
+    const out = document.createElement('div'), line = document.createElement('label'); line.className = 'in';
+    line.innerHTML = '<span></span><input autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Команда">';
+    line.querySelector('span').textContent = C.terminal.prompt; t.append(out, line);
+    const inp = line.querySelector('input'), hist = []; let hi = 0;
+    const print = (s, cls) => { const d = document.createElement('div'); if(cls) d.className = cls; d.textContent = s; out.appendChild(d); body.scrollTop = body.scrollHeight; };
+    const cmds = Object.assign({
+      help: () => 'Команды: ' + Object.keys(cmds).sort().join(', ') + '\nopen <окно>: ' + Object.keys(C.windows).join(', '),
+      date: () => new Date().toLocaleString('ru-RU'),
+      clear: () => { out.textContent = ''; return null; },
+      open: a => C.windows[a] ? (openWin(a), 'Запускаю ' + a + '...') : 'Нет такого окна. Варианты: ' + Object.keys(C.windows).join(', '),
+      exit: () => { setTimeout(leaveOS, 300); return 'Выключение...'; }
+    }, C.terminal.commands);
+    print(C.terminal.greeting);
+    inp.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ const v = inp.value.trim(); inp.value = ''; print(C.terminal.prompt + ' ' + v, 'hl'); if(!v) return; hist.push(v); hi = hist.length; SFX.click();
+        const [c, ...args] = v.split(/\s+/), f = cmds[c.toLowerCase()];
+        if(f === undefined){ print('Неизвестная команда: ' + c + '. Введи help.', 'er'); SFX.error(); return; }
+        const r = typeof f === 'function' ? f(args.join(' ')) : f; if(r != null) print(r); }
+      else if(e.key === 'ArrowUp'){ hi = Math.max(0, hi-1); inp.value = hist[hi] || ''; e.preventDefault(); }
+      else if(e.key === 'ArrowDown'){ hi = Math.min(hist.length, hi+1); inp.value = hist[hi] || ''; e.preventDefault(); }
+      else if(e.key.length === 1) SFX.tone(1800 + Math.random()*400, .015, 'square', .05);
+    });
+    t.addEventListener('click', () => inp.focus());
+    if(matchMedia('(pointer:fine)').matches) setTimeout(() => inp.focus(), 50);
+  },
+
+  music(body){
+    body.innerHTML = '<canvas class="screen px" width="128" height="40"></canvas><p style="margin:12px 0 4px">TRACK 01 — <span class="muted">BANY_THEME.MOD</span></p><button class="btn" type="button">▶ ИГРАТЬ</button>';
+    const cv = body.querySelector('canvas'), x = cv.getContext('2d'), btn = body.querySelector('button');
+    // простая чиптюн-петля: [нота в полутонах от A4, длительность в шагах]
+    const MEL = [0,3,7,12, 10,7,3,7, -2,2,5,10, 8,5,2,5], BASS = [-24,-24,-26,-26];
+    let playing = false, timer = null, step = 0, an = null, bars = new Array(16).fill(0), viz = null;
+    const hz = n => 440*Math.pow(2, n/12);
+    function tick(){ if(!SFX.ctx) return; const n = MEL[step % 16]; SFX.tone(hz(n), .16, 'square', .09); if(step % 4 === 0) SFX.tone(hz(BASS[(step/4|0) % 4]), .4, 'triangle', .2);
+      bars = bars.map((b,i) => Math.max(b - 2, (i === (n + 12) % 16 ? 10 : 0) + Math.floor(rnd(step*16 + i)*4))); step++; }
+    function draw(){ x.fillStyle = '#020503'; x.fillRect(0,0,128,40);
+      bars.forEach((b,i) => { for(let k=0;k<b;k++){ x.fillStyle = k > 8 ? C.colors.accent : k > 5 ? C.colors.hi : C.colors.phos; x.fillRect(4 + i*7 + 1, 34 - k*3, 5, 2); } });
+      x.fillStyle = C.colors.dim; x.fillRect(0, 37, 128, 1); }
+    draw();
+    btn.addEventListener('click', () => { SFX.init(); playing = !playing; btn.textContent = playing ? '■ СТОП' : '▶ ИГРАТЬ';
+      clearInterval(timer); clearInterval(viz);
+      if(playing){ timer = setInterval(tick, 150); viz = setInterval(draw, 100); } else { bars.fill(0); draw(); } });
+    return () => { clearInterval(timer); clearInterval(viz); };
+  },
+
+  camera(body){
+    body.classList.add('flush'); body.innerHTML = '<canvas class="screen px" width="160" height="120"></canvas>';
+    const cv = body.querySelector('canvas'), x = cv.getContext('2d');
+    const draw = () => { x.imageSmoothingEnabled = true; x.drawImage(roomC, 112, 120, 800, 600, 0, 0, 160, 120);
+      x.fillStyle = 'rgba(0,0,0,.25)'; for(let y=0;y<120;y+=2) x.fillRect(0, y, 160, 1);
+      const d = new Date(), s = [d.getHours(), d.getMinutes(), d.getSeconds()].map(v => String(v).padStart(2,'0')).join(':');
+      if(Math.floor(Date.now()/500) % 2){ x.fillStyle = C.colors.accent; x.fillRect(4, 4, 4, 4); }
+      text(x, 'REC', 11, 4, C.colors.accent); text(x, 'CAM 01', 160 - 26, 4, '#ffffff'); text(x, s, 4, 120 - 9, '#ffffff'); };
+    draw(); const iv = setInterval(draw, 1000/T.fps); return () => clearInterval(iv);
+  },
+
+  calendar(body){
+    const d = new Date(), y = d.getFullYear(), m = d.getMonth();
+    const MON = ['ЯНВАРЬ','ФЕВРАЛЬ','МАРТ','АПРЕЛЬ','МАЙ','ИЮНЬ','ИЮЛЬ','АВГУСТ','СЕНТЯБРЬ','ОКТЯБРЬ','НОЯБРЬ','ДЕКАБРЬ'];
+    const first = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m+1, 0).getDate();
+    let h = `<h2>${MON[m]} ${y}</h2><table class="cal"><tr>${['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'].map(s => `<th>${s}</th>`).join('')}</tr><tr>`;
+    for(let i=0;i<first;i++) h += '<td class="off"></td>';
+    for(let n=1;n<=days;n++){ h += `<td${n === d.getDate() ? ' class="today"' : ''}>${n}</td>`; if((first + n) % 7 === 0 && n < days) h += '</tr><tr>'; }
+    body.innerHTML = h + '</tr></table><p class="muted" style="margin-top:12px">Свободен для созвонов — пиши в почту.</p>';
+  },
+
+  downloads(body, cfg){
+    body.innerHTML = '<p>Загрузка файлов...</p><div class="bar"><i></i></div><ul class="rows"></ul>';
+    const bar = body.querySelector('.bar i'), ul = body.querySelector('ul'); let p = reduced ? 100 : 0;
+    const list = () => { ul.innerHTML = ''; body.querySelector('p').textContent = 'Готово: ' + cfg.files.length + ' файла.';
+      cfg.files.forEach(([name, src]) => { const li = document.createElement('li'), a = document.createElement('a'); a.href = '#'; a.textContent = name;
+        a.addEventListener('click', e => { e.preventDefault(); const k = 'file:' + name; if(!C.windows[k]) C.windows[k] = {title:name, w:520, type:'img', src}; openWin(k); });
+        li.innerHTML = '<b>ФАЙЛ</b>'; li.appendChild(a); ul.appendChild(li); }); };
+    // прогресс идёт ступеньками
+    const iv = setInterval(() => { p = Math.min(100, p + 8 + Math.floor(Math.random()*10)); bar.style.width = (Math.floor(p/4)*4) + '%'; if(p >= 100){ clearInterval(iv); list(); } }, 120);
+    if(reduced){ bar.style.width = '100%'; list(); }
+    return () => clearInterval(iv);
+  }
+};
+
+/* ---------------- меню ПУСК ---------------- */
+const menu = $('menu'), startBtn = $('start');
+function buildMenu(){
+  menu.innerHTML = '';
+  ['about','projects','mail','terminal','readme'].forEach(id => { const ic = C.icons.find(i => i.id === id); if(!ic) return;
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
+    b.innerHTML = `<span class="mi px" style="background-position:${-ic.icon*16}px 0"></span><span></span>`; b.lastChild.textContent = ic.label;
+    b.addEventListener('click', () => { closeMenu(); openWin(id); }); menu.appendChild(b); });
+  menu.appendChild(document.createElement('hr'));
+  const off = document.createElement('button'); off.type = 'button'; off.setAttribute('role', 'menuitem'); off.textContent = 'ВЫКЛЮЧИТЬ';
+  off.addEventListener('click', () => { closeMenu(); leaveOS(); }); menu.appendChild(off);
+}
+function closeMenu(){ menu.hidden = true; startBtn.setAttribute('aria-expanded', 'false'); }
+startBtn.addEventListener('click', e => { e.stopPropagation(); SFX.click(); if(menu.hidden){ buildMenu(); menu.hidden = false; startBtn.setAttribute('aria-expanded', 'true'); menu.querySelector('button').focus(); } else closeMenu(); });
+document.addEventListener('pointerdown', e => { if(!menu.hidden && !menu.contains(e.target) && e.target !== startBtn) closeMenu(); });
+
+/* ---------------- часы ---------------- */
+function tickClock(){ const d = new Date(), sep = reduced || d.getSeconds() % 2 ? ':' : ' ';
+  $('clock').textContent = String(d.getHours()).padStart(2,'0') + sep + String(d.getMinutes()).padStart(2,'0'); }
+setInterval(tickClock, 1000); tickClock();
+
+/* ---------------- клавиатура ---------------- */
+addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ if(!menu.hidden) return closeMenu(); const ids = Object.keys(open); if(ids.length){ closeWin(ids.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b)); } return; }
+  if((e.key === 'Enter' || e.key === ' ') && (state === 'ready' || state === 'boot' || state === 'rain') && !e.target.closest('button')){ e.preventDefault(); state === 'ready' ? startDive() : skipIntro(); }
+});
 
 /* ---------------- главный цикл ---------------- */
-function drawScreen(el,t){
- var crop=function(){sctx.imageSmoothingEnabled=true;sctx.drawImage(roomC,CROP.x,CROP.y,CROP.w,CROP.h,0,0,SW,SH);scanlines(sctx)};
- if(state==='rain'){
-  drawRain(el);sctx.clearRect(0,0,SW,SH);
-  var R=CONFIG.rainMs;
-  if(el<R)sctx.drawImage(rain,0,0);
-  else if(el<R+260){var u=(el-R)/260,h=Math.max(2,SH*(1-u)*(1-u));sctx.fillStyle='#000';sctx.fillRect(0,0,SW,SH);sctx.drawImage(rain,0,0,SW,SH,0,(SH-h)/2,SW,h)}
-  else if(el<R+420){sctx.fillStyle='#000';sctx.fillRect(0,0,SW,SH);sctx.fillStyle='#d7ffd9';sctx.fillRect(0,SH/2-2,SW,4)}
-  else if(el<R+1000){var u2=(el-R-420)/580,h2=Math.max(4,SH*(1-(1-u2)*(1-u2)));
-   sctx.fillStyle='#000';sctx.fillRect(0,0,SW,SH);
-   var sy=CROP.y+(CROP.h-CROP.h*h2/SH)/2,sh=CROP.h*h2/SH;
-   sctx.drawImage(roomC,CROP.x,sy,CROP.w,sh,0,(SH-h2)/2,SW,h2);scanlines(sctx);
-   sctx.fillStyle='#d7ffd9';sctx.fillRect(0,Math.floor((SH-h2)/2),SW,1);sctx.fillRect(0,Math.floor((SH+h2)/2)-1,SW,1)}
-  else{state='ready';hint.classList.add('on')}
-  glow.style.opacity=.55+.2*Math.sin(el/90)*Math.sin(el/310);
- }else if(state==='ready'||state==='diving'||state==='surf'){crop();glow.style.opacity=.65}}
-function tick(now){
- var dt=Math.min(100,now-prev);prev=now;var el=now-T0,t=now/1000;
- renderRoom(t);
- if(state!=='inside'&&state!=='osout'&&state!=='osin')drawScreen(el,t);
- if(state==='diving'){dive+=dt/CONFIG.diveMs;if(dive>=1){dive=1;state='osin';osE=0;os.classList.add('on');prepOS(0.0001)}applyOuter()}
- if(state==='osin'){osE+=dt/CONFIG.zoomOutMs;if(osE>=1){osE=1;state='inside'}prepOS(osE);if(osE>0.15)view.style.visibility='hidden'}
- if(state==='osout'){osE-=dt/CONFIG.zoomOutMs;view.style.visibility='visible';
-  if(osE<=0){osE=0;state='diving';diveDir=-1;os.classList.remove('on');os.style.opacity=0;taskbar.classList.remove('up');dive=1;state='surf'}
-  else prepOS(osE)}
- if(state==='surf'){dive-=dt/CONFIG.diveMs;if(dive<=0){dive=0;state='ready';hint.classList.add('on')}applyOuter();drawScreen(el,t)}
- requestAnimationFrame(tick)}
-layout();requestAnimationFrame(tick);
+let prev = performance.now();
+function loop(now){
+  const dt = Math.min(64, now - prev); prev = now;
+  renderRoom(now);
+  if(state !== 'inside' && state !== 'osin' && state !== 'osout') crtFrame(now);
+  if(state === 'dive'){ dive = Math.min(1, dive + dt/T.dive); applyCamera();
+    if(dive >= 1){ state = 'osin'; enterOS(); prepOS(0); } }
+  else if(state === 'osin'){ prepOS(Math.min(1, osE + dt/T.zoomOut)); if(osE >= 1) state = 'inside'; }
+  else if(state === 'osout'){ prepOS(Math.max(0, osE - dt/T.zoomOut)); if(osE <= 0){ exitToScene(); state = 'surf'; dive = 1; lastCrt = -1; } }
+  else if(state === 'surf'){ dive = Math.max(0, dive - dt/T.dive); applyCamera(); if(dive <= 0) toReady(); }
+  requestAnimationFrame(loop);
+}
+addEventListener('resize', () => { layoutScene(); if(os.classList.contains('on')){ layoutOS(); prepOS(osE); } });
+layoutScene(); SFX.set(SFX.on); requestAnimationFrame(loop);
+
+// для отладки из консоли: BANY.open('about'), BANY.skip()
+window.BANY = { open: openWin, skip: () => { skipIntro(); startDive(); }, config: C };
 })();
 </script>
+</body>
+</html>

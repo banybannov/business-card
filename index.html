@@ -74,8 +74,10 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
   background:#000 url(assets/room.png) no-repeat}
 .icon{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--phos);visibility:hidden;width:96px}
 .icon .ico{width:var(--ico);height:var(--ico);background:url(assets/icons.png) no-repeat;background-size:calc(var(--ico) * var(--icount)) var(--ico)}
-.icon .lb{font:var(--t8s)/1.5 var(--title);padding:2px 4px;white-space:nowrap;text-align:center;text-shadow:1px 1px 0 #000;background:var(--bg)}
-.icon:hover .lb,.icon:focus-visible .lb{background:var(--phos);color:var(--bg);text-shadow:none}
+.icon .ico{box-sizing:content-box;padding:6px;background-color:rgba(5,10,7,.82);background-origin:content-box;border:2px solid var(--dim);box-shadow:3px 3px 0 #000}
+.icon .lb{font:16px/1.25 var(--body);color:var(--hi);padding:3px 6px;white-space:nowrap;text-align:center;background:rgba(5,10,7,.88);border:2px solid var(--dim);box-shadow:3px 3px 0 #000}
+.icon:hover .ico,.icon:focus-visible .ico{border-color:var(--phos)}
+.icon:hover .lb,.icon:focus-visible .lb{background:var(--phos);color:var(--bg);border-color:var(--phos)}
 .icon:focus-visible{outline:none}
 .icon.show{visibility:visible;animation:pop .3s steps(3) both}
 @keyframes pop{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
@@ -88,6 +90,22 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 #bubble{position:absolute;z-index:6;width:max-content;max-width:min(260px,80vw);background:var(--bg);border:2px solid var(--phos);box-shadow:4px 4px 0 #000;padding:8px 10px;
   font:var(--txt)/1.3 var(--body);color:var(--hi);pointer-events:none;transform:translate(-50%,-100%)}
 #bubble::after{content:"";position:absolute;left:calc(50% - 6px);bottom:-8px;width:8px;height:8px;background:var(--bg);border:2px solid var(--phos);border-top:0;border-left:0}
+/* пасхалки */
+#bsod{position:fixed;inset:0;z-index:95;background:#0000aa;color:#fff;display:none;place-items:center;padding:24px;font:var(--txt)/1.4 var(--body);cursor:pointer}
+#bsod.on{display:grid}
+#bsod div{max-width:640px}
+#bsod h1{display:inline-block;background:#aaa;color:#0000aa;font:var(--t8)/1.6 var(--title);padding:0 8px;margin:0 0 16px}
+#toast{position:absolute;right:12px;bottom:calc(var(--tb) + 12px);z-index:75;background:var(--bg);border:2px solid var(--accent);box-shadow:4px 4px 0 #000;padding:8px 12px;font:var(--txt)/1.3 var(--body);color:var(--hi);max-width:min(320px,calc(100vw - 24px));display:none}
+#toast.on{display:block;animation:pop .3s steps(3) both}
+#toast b{display:block;font:var(--t8s)/1.6 var(--title);color:var(--accent)}
+#desk.infected .icon{animation:none;transition:transform 1.2s cubic-bezier(.5,0,1,.5)}
+#desk.infected{filter:hue-rotate(-60deg) saturate(1.6)}
+.ach{list-style:none;margin:0;padding:0}
+.ach li{display:flex;gap:10px;padding:6px 0;border-bottom:2px dotted var(--dim)}
+.ach li i{font-style:normal;flex:none;width:1.2em;color:var(--mid)}
+.ach li.got i{color:var(--accent)}
+.ach li b{font:var(--t8s)/1.6 var(--title);color:var(--hi);display:block}
+.ach li:not(.got){color:var(--mid)}
 #mosaic{position:fixed;inset:0;width:100%;height:100%;z-index:80;pointer-events:none;display:none}
 
 /* окна */
@@ -209,6 +227,7 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
   </div>
   <div id="wins"></div>
   <div id="menu" hidden role="menu"></div>
+  <div id="toast" role="status"></div>
   <div id="taskbar">
     <button id="start" type="button" aria-haspopup="true" aria-expanded="false">ПУСК</button>
     <div id="tasks"></div>
@@ -220,6 +239,7 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
 <canvas id="mosaic" class="px"></canvas>
 <canvas id="room" width="1024" height="1024" hidden></canvas>
 <div id="flash"></div>
+<div id="bsod" role="alert"><div></div></div>
 <div id="fx"></div>
 
 <script>
@@ -424,6 +444,8 @@ const CONFIG = {
     racer:     { title:'ГОНКИ', w:340, type:'racer', music:'theme' },
     solitaire: { title:'СОЛИТЕР — КОСЫНКА', w:520, type:'solitaire' },
     scores:    { title:'ТАБЛИЦА РЕКОРДОВ', w:440, type:'scores' },
+    secrets:   { title:'АЧИВКИ.EXE', w:460, type:'secrets' },
+    defender:  { title:'BANY DEFENDER', w:380, type:'defender' },
 
     readme: { title:'README.TXT', w:560, type:'html', html:`
       <h2>BANY OS 1.1</h2>
@@ -482,9 +504,46 @@ const CONFIG = {
       contacts: 'e-mail: bany.bannov@gmail.com\ntelegram: @quebany\ngithub: banybannov',
       projects: 'CVIUM.BOT — бот для ATS-резюме. Набери: open projects',
       games:    'tetris, racer, solitaire. Набери: open tetris',
-      sudo:     'Доступ запрещён. Инцидент будет записан в тест-репорт.',
-      hello:    'hello, world!!'
+      hello:    'hello, world!!',
+      coffee:   '418 I\'m a teapot. Кофе не варю, только чай.',
+      ping:     'pong',
+      bug:      'Баг не найден. Значит, это фича.',
+      iddqd:    'Режим бога включён. Баги всё равно остались.',
+      vim:      'Ты застрял в vim навсегда. Ладно, шучу: :q!',
+      42:       'Ответ верный. Осталось понять вопрос.'
+      // sudo, rm, ls, cat, hack, secrets — встроены в код (раздел ПАСХАЛКИ)
     }
+  },
+
+  // Пасхалки и ачивки. Найденное хранится в браузере посетителя.
+  // Проверить ночь или праздник: открой сайт с ?now=2026-04-01T02:00
+  eggs: {
+    bsodClicks: 7,            // столько кликов по одной иконке за 3 секунды → синий экран
+    night: [0, 5],            // с какого по какой час (не включая) в ПРОЕКТАХ виден ночной файл
+    nightFile: { name:'NIGHT.TXT', text:'Ты не спишь в такое время? Я тоже. Иди спать, баги подождут до утра.' },
+    // праздничные файлы: 'ММ-ДД' → файл в ПРОЕКТАХ. Допиши свой день рождения.
+    dates: {
+      '01-01': { name:'НОВЫЙ_ГОД.TXT', text:'С Новым годом! Пусть в этом году все тесты будут зелёными.' },
+      '04-01': { name:'ДУРАК.EXE', text:'С 1 апреля! Этот файл ничего не делает. Как и половина продакшена.' },
+      '10-31': { name:'ХЭЛЛОУИН.TXT', text:'Самое страшное — это баг, который воспроизводится только на проде.' }
+    },
+    hiddenFile: { name:'.SECRET.TXT', text:'Ты нашёл скрытый файл. Внутри ничего нет, но ачивка твоя.' },
+    // список ачивок: id → [название, подсказка]. Порядок = порядок в окне.
+    list: {
+      explorer:  ['ИССЛЕДОВАТЕЛЬ', 'Открой все 8 папок на рабочем столе'],
+      trash:     ['МУСОРЩИК', 'Загляни в корзину'],
+      bsod:      ['СИНИЙ ЭКРАН', 'Покликай по одной иконке слишком настойчиво'],
+      sudo:      ['БЕЗ ПРАВ', 'Попроси у терминала права администратора'],
+      hidden:    ['СКРЫТЫЙ ФАЙЛ', 'Терминал показывает не все файлы'],
+      virus:     ['ПЕРЕЖИЛ ВИРУС', 'Сделай в терминале то, что делать нельзя'],
+      night:     ['ПОЛУНОЧНИК', 'Загляни в проекты после полуночи'],
+      holiday:   ['ПРАЗДНИК', 'В некоторые дни в проектах лежит особый файл'],
+      tetris:    ['ТЕТРИСИСТ', 'Набери 1000 очков в тетрисе'],
+      racer:     ['ГОНЩИК', 'Проедь 200 в гонках'],
+      solitaire: ['КОСЫНКА', 'Разложи пасьянс до конца']
+    },
+    gameGoals: { tetris:1000, racer:200 },   // solitaire — за любую победу
+    reward: 'Ты нашёл всё. Напиши мне в Telegram слово БАГОЛОВ, отвечу лично.'
   }
 };
 
@@ -819,7 +878,7 @@ C.icons.forEach(ic => {
   b.innerHTML = '<span class="ico px"></span><span class="lb"></span>';
   b.querySelector('.ico').style.backgroundPosition = `calc(var(--ico) * ${-ic.icon}) 0`;
   b.querySelector('.lb').textContent = ic.label;
-  b.addEventListener('click', () => { SFX.click(); openWin(ic.id); });
+  b.addEventListener('click', () => { SFX.click(); if(!Eggs.iconClick(ic.id)) openWin(ic.id); });
   desk.appendChild(b); iconEls.push(b);
 });
 function showIcons(){ if(iconsShown) return; iconsShown = true;
@@ -839,7 +898,7 @@ function layoutOS(){
   // на узком экране — вся комната целиком по высоте (иначе видна только спина крупным планом)
   if(W < H){ desk.style.backgroundSize = 'cover'; desk.style.backgroundPosition = '50% 50%'; }
   else { desk.style.backgroundSize = 1024*k + 'px'; desk.style.backgroundPosition = -sx*k + 'px ' + -sy*k + 'px'; }
-  const bw = small ? 88 : 96, bh = ico + 30, half = Math.ceil(iconEls.length/2);
+  const bw = small ? 96 : 112, bh = ico + 16 + 36, half = Math.ceil(iconEls.length/2);
   const gap = Math.max(4, Math.min(28, (H - 24 - half*bh)/(half - 1))), top0 = Math.round((H - half*bh - (half-1)*gap)/2);
   iconEls.forEach((el, i) => { const right = i >= half, r = right ? i - half : i;
     el.style.width = bw + 'px'; el.style.left = (right ? W - bw - 12 : 12) + 'px'; el.style.top = Math.round(top0 + r*(bh + gap)) + 'px'; });
@@ -907,6 +966,7 @@ function openWin(id){
   dragify(el, el.querySelector('.tbar'));
   SFX.open();
   if(cfg.effect === 'glitch') glitch();
+  Eggs.opened(id);
 }
 function topWin(){ const ids = Object.keys(open); return ids.length ? ids.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b) : null; }
 function closeWin(id){ const w = open[id]; if(!w) return; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; SFX.close();
@@ -960,6 +1020,7 @@ function lbTable(list, me){
 }
 // экран «игра окончена»: имя → сохранить → таблица. restart — функция новой игры
 function gameOver(wrap, game, score, restart, title){
+  if(game === 'solitaire' ? title : score >= (C.eggs.gameGoals[game] || 1e9)) Eggs.got(game);
   const g = document.createElement('div'); g.className = 'gover';
   g.innerHTML = `<h2>${esc(title || 'ИГРА ОКОНЧЕНА')}</h2><p>СЧЁТ: <b style="color:var(--hi)">${score}</b></p>
     <input maxlength="10" aria-label="Твоё имя" placeholder="ИМЯ"><div><button class="btn" type="button" data-a="save">СОХРАНИТЬ</button><button class="btn" type="button" data-a="again">ЕЩЁ РАЗ</button></div>`;
@@ -1000,7 +1061,7 @@ const bodyAvailH = (body, extra) => parseFloat(body.style.maxHeight) - extra;
    APPS — содержимое окон
    ===================================================================== */
 const APPS = {
-  html(body, cfg){ body.innerHTML = cfg.html;
+  html(body, cfg, id){ body.innerHTML = cfg.html; if(id === 'projects') Eggs.files(body);
     body.querySelectorAll('canvas[data-avatar]').forEach(cv => loadImg(cv.dataset.avatar).then(im => { if(!im) return; const x = cv.getContext('2d'); x.imageSmoothingQuality = 'high';
       const s = Math.min(im.width, im.height); x.drawImage(im, (im.width-s)/2, (im.height-s)/2, s, s, 0, 0, cv.width, cv.height); })); },
 
@@ -1022,7 +1083,7 @@ const APPS = {
       play: a => { Player.play(a || 'theme'); return 'Играет: ' + (Player.current ? Player.current.title : '—') + '. Треки: ' + Player.tracks.map(t => t.id).join(', '); },
       stop: () => { Player.stop(); return 'Тишина.'; },
       exit: () => { setTimeout(leaveOS, 300); return 'Выключение...'; }
-    }, C.terminal.commands);
+    }, Eggs.commands(print), C.terminal.commands);
     print(C.terminal.greeting);
     inp.addEventListener('keydown', e => {
       if(e.key === 'Enter'){ const v = inp.value.trim(); inp.value = ''; print(C.terminal.prompt + ' ' + v, 'hl'); if(!v) return; hist.push(v); hi = hist.length; SFX.click();
@@ -1340,6 +1401,91 @@ function Solitaire(body, cfg, id){
   return () => { clearInterval(timer); clearInterval(autoIv); };
 }
 
+/* =====================================================================
+   ПАСХАЛКИ И АЧИВКИ (тексты — в CONFIG.eggs)
+   ===================================================================== */
+const Eggs = (() => {
+  const E = C.eggs, KEY = 'bany-os-eggs-v1', got = new Set(store.get(KEY, []).filter(k => E.list[k]));
+  const qNow = new URLSearchParams(location.search).get('now'), now = () => (qNow && !isNaN(new Date(qNow))) ? new Date(qNow) : new Date();
+  const seen = new Set(store.get(KEY + '-seen', [])), toastEl = $('toast'), bsodEl = $('bsod');
+  let toastT = null, clicks = {}, bsod = false, bsodAt = 0, infected = false;
+
+  function toast(title, text){ toastEl.innerHTML = `<b>${esc(title)}</b>${esc(text)}`; toastEl.classList.remove('on'); void toastEl.offsetWidth; toastEl.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), 4000); }
+  function give(id){ if(!E.list[id] || got.has(id)) return; got.add(id); store.set(KEY, [...got]); SFX.coin();
+    const n = Object.keys(E.list).length;
+    toast('★ АЧИВКА ' + got.size + '/' + n, E.list[id][0]);
+    if(got.size === n) setTimeout(() => { toast('★ ВСЕ СЕКРЕТЫ НАЙДЕНЫ', 'Загляни в АЧИВКИ.EXE'); }, 4200);
+    if(open.secrets){ closeWin('secrets'); openWin('secrets'); } }
+
+  // файл-окно, которое создаётся на лету
+  function fileWin(key, f){ C.windows['egg:' + key] = { title: f.name, w: 420, type: 'html', html: `<p>${esc(f.text)}</p>` }; return 'egg:' + key; }
+
+  // синий экран
+  function showBsod(label){ bsod = true; bsodAt = performance.now(); closeMenu(); SFX.error(); Player.stop();
+    bsodEl.firstChild.innerHTML = `<h1>BANY OS</h1><p>Произошла фатальная ошибка 0E в модуле QA_ENGINEER.VXD.
+      Слишком много кликов по папке «${esc(label)}».</p><p>Тестировщик доволен: ты нашёл баг.</p>
+      <p>* Нажми любую клавишу, чтобы продолжить.<br>* Ctrl+Alt+Del не поможет.</p>`;
+    bsodEl.classList.add('on'); }
+  function hideBsod(){ if(performance.now() - bsodAt < 800) return; bsod = false; bsodEl.classList.remove('on'); glitch(); give('bsod'); }
+  bsodEl.addEventListener('click', hideBsod);
+
+  // фейковый вирус: иконки осыпаются, потом BANY DEFENDER всё чинит
+  function virus(){ if(infected) return; infected = true; closeAll(); SFX.error(); glitch();
+    desk.classList.add('infected');
+    iconEls.forEach((el, i) => { el.querySelector('.lb').textContent = ['ХА-ХА','ВИРУС','ОЙ','404'][i % 4];
+      el.style.transform = `translate(${Math.round((rnd(i*5.1)-.5)*160)}px,${Math.round(innerHeight*.6 + rnd(i)*200)}px) rotate(${Math.round((rnd(i*2.3)-.5)*120)}deg)`; });
+    setTimeout(() => openWin('defender'), 2200); }
+  function cure(){ desk.classList.remove('infected');
+    iconEls.forEach((el, i) => { el.style.transform = ''; el.querySelector('.lb').textContent = C.icons[i].label; });
+    infected = false; give('virus'); }
+
+  APPS.defender = body => {
+    body.innerHTML = '<h2>ОБНАРУЖЕН ВИРУС</h2><p>ICON_EATER.EXE ест твой рабочий стол.</p><p class="muted">Лечение...</p><div class="bar"><i></i></div>';
+    const bar = body.querySelector('.bar i'), msg = body.querySelector('.muted'); let p = 0;
+    const iv = setInterval(() => { p = Math.min(100, p + 4 + Math.random()*8); bar.style.width = p + '%'; SFX.tone(600 + p*6, .03, 'square', .04);
+      if(p >= 100){ clearInterval(iv); msg.textContent = 'Вирус удалён. Иконки возвращены на место.'; cure(); setTimeout(() => closeWin('defender'), 1500); } }, 120);
+    return () => { clearInterval(iv); if(infected) cure(); };
+  };
+
+  APPS.secrets = body => {
+    const n = Object.keys(E.list).length;
+    body.innerHTML = `<h2>НАЙДЕНО ${got.size} ИЗ ${n}</h2><div class="bar"><i style="width:${got.size/n*100}%"></i></div>` +
+      (got.size === n ? `<p style="color:var(--accent)">${esc(E.reward)}</p>` : '') +
+      '<ul class="ach">' + Object.entries(E.list).map(([k, [name, hint]]) =>
+        `<li class="${got.has(k) ? 'got' : ''}"><i>${got.has(k) ? '★' : '?'}</i><span><b>${got.has(k) ? esc(name) : '???'}</b>${esc(hint)}</span></li>`).join('') + '</ul>';
+  };
+
+  return {
+    got: give, virus, bsodOn: () => bsod, bsodOff: hideBsod,
+    // клик по иконке: true — клик съеден пасхалкой
+    iconClick(id){ const t = performance.now(), c = clicks[id] = (clicks[id] || []).filter(x => t - x < 3000); c.push(t);
+      if(c.length >= E.bsodClicks){ clicks = {}; closeAll(); showBsod(C.icons.find(i => i.id === id).label); return true; }
+      return infected; },
+    opened(id){ if(id === 'trash') give('trash');
+      if(C.icons.some(i => i.id === id) && !seen.has(id)){ seen.add(id); store.set(KEY + '-seen', [...seen]); }
+      if(C.icons.every(i => seen.has(i.id))) give('explorer');
+      if(id === 'egg:night') give('night'); if(id.startsWith('egg:date')) give('holiday'); },
+    // скрытые файлы в окне ПРОЕКТЫ
+    files(body){ const d = now(), h = d.getHours(), md = String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'), ul = body.querySelector('.rows'); if(!ul) return;
+      const add = (key, f, note) => { const li = document.createElement('li'); li.innerHTML = `<b></b><span>${esc(note)}<br><a href="#" data-open="${fileWin(key, f)}">открыть →</a></span>`;
+        li.firstChild.textContent = f.name; ul.appendChild(li); };
+      if(h >= E.night[0] && h < E.night[1]) add('night', E.nightFile, 'Этот файл виден только ночью.');
+      if(E.dates[md]) add('date' + md, E.dates[md], 'Этот файл появляется раз в год.'); },
+    // команды терминала
+    commands(print){ return {
+      sudo: a => { give('sudo'); return /rm\s+-rf/.test(a) ? (setTimeout(virus, 600), 'Ну ты сам попросил...') : 'Пользователь не входит в sudoers. Инцидент будет записан в тест-репорт.'; },
+      rm: a => /-rf/.test(a) ? 'Недостаточно прав. Попробуй sudo, если не боишься.' : 'rm: что удалять-то?',
+      ls: a => 'ОБО_МНЕ.TXT  ПРОЕКТЫ  ИГРЫ  ФОТО  ПЛЕЕР  РЕКОРДЫ  ПОЧТА' + (/-a/.test(a) ? '  ' + E.hiddenFile.name : ''),
+      cat: a => a.toUpperCase() === E.hiddenFile.name ? (give('hidden'), E.hiddenFile.text) : a ? 'Файл не найден: ' + a : 'cat: какой файл?',
+      hack: () => { const lines = ['Подключаюсь к пентагону...', 'Обхожу файрвол...', 'Скачиваю больше RAM...', 'Готово. Ты взломал сам себя.'];
+        lines.forEach((l, i) => setTimeout(() => print(l, i === lines.length - 1 ? 'hl' : ''), 500*(i+1))); return null; },
+      secrets: () => (openWin('secrets'), 'Открываю АЧИВКИ.EXE...'),
+      achievements: () => (openWin('secrets'), 'Открываю АЧИВКИ.EXE...')
+    }; }
+  };
+})();
+
 /* ---------------- меню ПУСК ---------------- */
 const menu = $('menu'), startBtn = $('start');
 function buildMenu(){
@@ -1348,6 +1494,9 @@ function buildMenu(){
     const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
     b.innerHTML = `<span class="mi px" style="background-position:${-ic.icon*16}px 0"></span><span></span>`; b.lastChild.textContent = ic.label;
     b.addEventListener('click', () => { closeMenu(); openWin(id); }); menu.appendChild(b); });
+  menu.appendChild(document.createElement('hr'));
+  [['АЧИВКИ', () => openWin('secrets')], ['НЕ НАЖИМАТЬ', () => Eggs.virus()]].forEach(([t, f]) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
+    b.textContent = t; b.addEventListener('click', () => { closeMenu(); f(); }); menu.appendChild(b); });
   menu.appendChild(document.createElement('hr'));
   const off = document.createElement('button'); off.type = 'button'; off.setAttribute('role', 'menuitem'); off.textContent = 'ВЫКЛЮЧИТЬ';
   off.addEventListener('click', () => { closeMenu(); leaveOS(); }); menu.appendChild(off);
@@ -1363,6 +1512,7 @@ setInterval(tickClock, 1000); tickClock();
 
 /* ---------------- клавиатура ---------------- */
 addEventListener('keydown', e => {
+  if(Eggs.bsodOn()){ Eggs.bsodOff(); return; }
   if(e.key === 'Escape'){ if(!menu.hidden) return closeMenu(); const t = topWin(); if(t) closeWin(t); return; }
   if((e.key === 'Enter' || e.key === ' ') && (state === 'ready' || state === 'boot' || state === 'rain') && !e.target.closest('button')){ e.preventDefault(); state === 'ready' ? startDive() : skipIntro(); }
 });
@@ -1384,7 +1534,7 @@ addEventListener('resize', () => { layoutScene(); if(os.classList.contains('on')
 layoutScene(); SFX.set(SFX.on); drawHero(); requestAnimationFrame(loop);
 
 // для отладки из консоли: BANY.open('tetris'), BANY.skip()
-window.BANY = { open: openWin, skip: () => { skipIntro(); startDive(); }, player: Player, scores: Scores, config: C };
+window.BANY = { eggs: Eggs, open: openWin, skip: () => { skipIntro(); startDive(); }, player: Player, scores: Scores, config: C };
 })();
 </script>
 </body>

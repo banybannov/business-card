@@ -7,29 +7,29 @@
 <meta name="description" content="Никита Баннов, QA-инженер. Интерактивная визитка в стиле ретро-ОС.">
 <meta name="theme-color" content="#050a07">
 <link rel="preload" href="assets/fonts/press-start-2p-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/pixelify-sans-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/tiny5-cyrillic-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 /* =====================================================================
    ШРИФТЫ (лежат локально в assets/fonts, лицензия SIL OFL 1.1)
    Press Start 2P — заголовки, панель задач, подписи. Чётко выглядит на размерах, кратных 8px.
-   Pixelify Sans  — основной текст в окнах.
+   Tiny5          — основной текст в окнах (чистая пиксельная кириллица).
    ===================================================================== */
 @font-face{font-family:'Press Start 2P';src:url(assets/fonts/press-start-2p-cyrillic-400.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;font-display:swap}
 @font-face{font-family:'Press Start 2P';src:url(assets/fonts/press-start-2p-latin-400.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap}
-@font-face{font-family:'Pixelify Sans';src:url(assets/fonts/pixelify-sans-cyrillic-400.woff2) format('woff2');font-weight:400 700;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;font-display:swap}
-@font-face{font-family:'Pixelify Sans';src:url(assets/fonts/pixelify-sans-latin-400.woff2) format('woff2');font-weight:400 700;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap}
+@font-face{font-family:'Tiny5';src:url(assets/fonts/tiny5-cyrillic-400.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;font-display:swap}
+@font-face{font-family:'Tiny5';src:url(assets/fonts/tiny5-latin-400.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap}
 
 /* Цвета задаются в CONFIG.colors (в скрипте ниже) и подставляются сюда автоматически */
 :root{
   --bg:#050a07; --panel:#0b1a10; --dim:#1d5a2a; --mid:#2f8a3e; --phos:#7fe08a; --hi:#c8ffc8;
   --accent:#ff3b5c; --accent-dim:#4a0f1c; --black:#000;
-  --title:'Press Start 2P',monospace; --body:'Pixelify Sans','Press Start 2P',monospace;
+  --title:'Press Start 2P',monospace; --body:'Tiny5','Press Start 2P',monospace;
   --tb:40px;           /* высота панели задач */
   --t8:16px;           /* «крупный» размер Press Start 2P (кратно 8) */
   --t8s:8px;           /* мелкий размер Press Start 2P */
-  --txt:18px;          /* основной текст */
+  --txt:20px;          /* основной текст */
   --ico:64px;          /* размер иконки — пересчитывается в JS под целый масштаб пикселей */
-  --room:512px;        /* размер окна комнаты — пересчитывается в JS */
+  --icount:20;         /* сколько картинок в assets/icons.png */
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--phos);overflow:hidden}
@@ -48,7 +48,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 #crt{position:absolute;left:0;top:0;transform-origin:0 0;background:#020503;will-change:transform}
 #paint{position:absolute;left:0;top:0;width:1024px;height:1024px;transform-origin:0 0;will-change:transform;pointer-events:none}
 #paint img{display:block;width:1024px;height:1024px;max-width:none}
-#glow{position:absolute;pointer-events:none;mix-blend-mode:screen;opacity:.0;
+#glow{position:absolute;pointer-events:none;mix-blend-mode:screen;opacity:0;
   background:radial-gradient(closest-side,rgba(110,255,140,.28),rgba(110,255,140,0))}
 #scene.hot{cursor:pointer}
 #hint{position:fixed;left:16px;right:16px;bottom:max(20px,env(safe-area-inset-bottom));text-align:center;font:var(--t8)/1.6 var(--title);color:var(--phos);
@@ -69,30 +69,30 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
   background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.22) 2px 3px)}
 #fx.flick{animation:flick 4s steps(1) infinite}
 @keyframes flick{0%,100%{opacity:1}47%{opacity:.85}48%{opacity:1}}
-#desk{position:absolute;left:0;right:0;top:0;bottom:var(--tb);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;gap:16px;
-  padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
-.icons{display:grid;grid-template-columns:repeat(2,calc(var(--ico) + 40px));gap:12px 8px;justify-content:center;align-content:center}
-.icon{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--phos);visibility:hidden}
-.icon .ico{width:var(--ico);height:var(--ico);background:url(assets/icons.png) no-repeat;background-size:calc(var(--ico) * 12) var(--ico)}
-.icon .lb{font:var(--t8s)/1.5 var(--title);padding:2px 4px;max-width:calc(var(--ico) + 40px);overflow-wrap:anywhere;text-align:center;text-shadow:1px 1px 0 #000}
-.icon:hover .lb,.icon:focus-visible .lb,.icon.sel .lb{background:var(--phos);color:var(--bg);text-shadow:none}
+/* рабочий стол: точечная сетка-«пол» */
+#desk{position:absolute;left:0;right:0;top:0;bottom:var(--tb);
+  background-image:radial-gradient(var(--dim) 1px,transparent 1.5px);background-size:16px 16px;background-position:8px 8px}
+.icon{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--phos);visibility:hidden;width:96px}
+.icon .ico{width:var(--ico);height:var(--ico);background:url(assets/icons.png) no-repeat;background-size:calc(var(--ico) * var(--icount)) var(--ico)}
+.icon .lb{font:var(--t8s)/1.5 var(--title);padding:2px 4px;white-space:nowrap;text-align:center;text-shadow:1px 1px 0 #000;background:var(--bg)}
+.icon:hover .lb,.icon:focus-visible .lb{background:var(--phos);color:var(--bg);text-shadow:none}
 .icon:focus-visible{outline:none}
 .icon.show{visibility:visible;animation:pop .3s steps(3) both}
 @keyframes pop{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
 
-#roomwin{position:relative;z-index:30;display:flex;flex-direction:column}
-#roomwin .tbar{transition:none}
-#roomwrap{position:relative;width:var(--room);height:var(--room);background:#000}
-#room{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;will-change:transform}
-#roomwin.frame{border:2px solid var(--phos);background:#000;box-shadow:4px 4px 0 #000}
-#roomwin:not(.frame){border:2px solid transparent}
-#roomwin:not(.frame) .tbar{visibility:hidden}
+/* персонаж */
+#hero{position:absolute;z-index:5;cursor:pointer;visibility:hidden}
+#hero canvas{display:block;width:100%;height:100%}
+#hero.show{visibility:visible;animation:beam .7s steps(7) both}
+@keyframes beam{0%{clip-path:inset(0 0 100% 0)}100%{clip-path:inset(0 0 0 0)}}
+#bubble{position:absolute;z-index:6;width:max-content;max-width:min(260px,80vw);background:var(--bg);border:2px solid var(--phos);box-shadow:4px 4px 0 #000;padding:8px 10px;
+  font:var(--txt)/1.3 var(--body);color:var(--hi);pointer-events:none;transform:translate(-50%,-100%)}
+#bubble::after{content:"";position:absolute;left:calc(50% - 6px);bottom:-8px;width:8px;height:8px;background:var(--bg);border:2px solid var(--phos);border-top:0;border-left:0}
+#mosaic{position:fixed;inset:0;width:100%;height:100%;z-index:80;pointer-events:none;display:none}
 
 /* окна */
 .tbar{display:flex;align-items:center;gap:8px;background:var(--phos);color:var(--bg);font:var(--t8s)/1 var(--title);height:24px;padding:0 4px 0 8px;letter-spacing:0}
 .tbar .tt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:1px}
-.tbar .dot{width:8px;height:8px;background:var(--accent);flex:none}
-.tbar .dot.blink{animation:blink 1s steps(1) infinite}
 #wins{position:absolute;left:0;right:0;top:0;bottom:var(--tb);pointer-events:none;z-index:40}
 .win{position:absolute;pointer-events:auto;display:flex;flex-direction:column;border:2px solid var(--phos);background:var(--bg);box-shadow:6px 6px 0 #000;max-width:calc(100vw - 16px)}
 .win.inactive{border-color:var(--mid)}
@@ -100,7 +100,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 .win .tbar{cursor:move;touch-action:none}
 .win .x{flex:none;width:18px;height:16px;padding:0;border:2px solid var(--bg);background:var(--phos);color:var(--bg);font:8px/1 var(--title);cursor:pointer;display:grid;place-items:center}
 .win .x:hover{background:var(--accent);color:#fff}
-.win .body{overflow:auto;padding:16px;line-height:1.35;-webkit-user-select:text;user-select:text;scrollbar-color:var(--phos) var(--panel)}
+.win .body{overflow:auto;padding:16px;line-height:1.35;-webkit-user-select:text;user-select:text;scrollbar-color:var(--phos) var(--panel);position:relative}
 .win .body.flush{padding:0;line-height:0}
 .win .body img{display:block;width:100%;height:auto}
 .win h2{font:var(--t8)/1.4 var(--title);margin:0 0 8px;color:var(--hi)}
@@ -110,11 +110,11 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
 .tags li{border:2px solid var(--dim);padding:0 6px;color:var(--hi)}
 .rows{list-style:none;margin:0;padding:0}
-.rows li{display:flex;gap:12px;align-items:baseline;padding:6px 0;border-bottom:2px dotted var(--dim)}
-.rows li b{font-weight:400;color:var(--hi);min-width:7em}
+.rows li{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:6px 0;border-bottom:2px dotted var(--dim)}
+.rows li b{font:var(--t8s)/1.6 var(--title);color:var(--hi);min-width:10em;flex:none}
 .rows a{color:var(--hi)}
 .btn{display:inline-block;font:var(--t8s)/1 var(--title);background:var(--bg);color:var(--phos);border:2px solid var(--phos);padding:8px 10px;cursor:pointer;text-decoration:none;margin:4px 8px 4px 0}
-.btn:hover,.btn:focus-visible{background:var(--phos);color:var(--bg)}
+.btn:hover,.btn:focus-visible,.btn.on{background:var(--phos);color:var(--bg)}
 .btn.red{border-color:var(--accent);color:var(--accent)}
 .btn.red:hover{background:var(--accent);color:#fff}
 .about{display:flex;gap:16px;align-items:center;margin-bottom:12px}
@@ -136,6 +136,26 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 .cal td.today{background:var(--accent);color:#fff;border-color:var(--accent)}
 .cal td.off{border-color:transparent}
 canvas.screen{display:block;width:100%;height:auto;background:#000}
+/* игры */
+.game{display:flex;flex-direction:column;align-items:center;gap:10px;line-height:1.2}
+.game canvas{display:block;background:#020503;touch-action:none}
+.pad{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.pad button{font:var(--t8)/1 var(--title);min-width:52px;height:44px;background:var(--panel);color:var(--phos);border:2px solid var(--phos);cursor:pointer;touch-action:none}
+.pad button:active{background:var(--phos);color:var(--bg)}
+.hud{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font:var(--t8s)/1.6 var(--title);color:var(--phos)}
+.hud b{color:var(--hi);font-weight:400}
+.gover{position:absolute;inset:0;background:rgba(5,10,7,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;line-height:1.3;z-index:3}
+.gover h2{color:var(--accent)!important}
+.gover input{font:var(--t8)/1 var(--title);background:#020503;color:var(--hi);border:2px solid var(--phos);padding:8px;width:min(240px,100%);text-transform:uppercase;text-align:center}
+.lb{width:100%;max-width:340px;border-collapse:collapse;font:var(--t8s)/2 var(--title)}
+.lb td{padding:2px 6px;border-bottom:2px dotted var(--dim)}
+.lb td:last-child{text-align:right;color:var(--hi)}
+.lb td:first-child{color:var(--mid);width:2.5em}
+.lb tr.me td{color:var(--bg);background:var(--phos)}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+/* плеер */
+.tracks li{cursor:pointer}
+.tracks li:hover b,.tracks li.on b{color:var(--bg);background:var(--phos)}
 /* панель задач */
 #taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--tb);z-index:60;display:flex;align-items:center;gap:6px;
   padding:0 max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left));
@@ -146,28 +166,25 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
 #tasks{display:flex;gap:6px;flex:1;min-width:0;overflow:hidden}
 .task{font:var(--t8s)/1 var(--title);border:2px solid var(--dim);background:none;padding:6px 8px;cursor:pointer;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
 .task.act{border-color:var(--phos);background:var(--dim);color:var(--hi)}
-#snd{font:var(--t8s)/1 var(--title);background:none;border:2px solid var(--dim);padding:6px;cursor:pointer;flex:none}
+#snd,#mus{font:var(--t8s)/1 var(--title);background:none;border:2px solid var(--dim);padding:6px;cursor:pointer;flex:none}
+#mus{border-color:var(--phos);color:var(--hi);max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #clock{font:var(--t8s)/1 var(--title);color:var(--phos);flex:none;padding:0 4px}
-#menu{position:absolute;left:max(6px,env(safe-area-inset-left));bottom:calc(var(--tb) - 2px);z-index:70;background:var(--panel);border:2px solid var(--phos);box-shadow:6px 6px 0 #000;min-width:220px;padding:4px 0}
+#menu{position:absolute;left:max(6px,env(safe-area-inset-left));bottom:calc(var(--tb) - 2px);z-index:70;background:var(--panel);border:2px solid var(--phos);box-shadow:6px 6px 0 #000;min-width:220px;padding:4px 0;max-height:calc(100% - var(--tb) - 8px);overflow:auto}
 #menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:8px 12px;cursor:pointer;font:var(--t8s)/1.2 var(--title)}
 #menu button:hover,#menu button:focus-visible{background:var(--phos);color:var(--bg);outline:none}
 #menu hr{border:0;border-top:2px solid var(--dim);margin:4px 0}
-#menu .mi{width:16px;height:16px;flex:none;background:url(assets/icons.png) no-repeat;background-size:192px 16px}
+#menu .mi{width:16px;height:16px;flex:none;background:url(assets/icons.png) no-repeat;background-size:calc(16px * var(--icount)) 16px}
 #flash{position:fixed;inset:0;background:var(--accent);mix-blend-mode:multiply;opacity:0;pointer-events:none;z-index:85}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-/* узкий / вертикальный экран: комната сверху, иконки снизу */
-@media (max-aspect-ratio:4/5),(max-width:640px){
-  #desk{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:center;gap:12px;padding-top:max(12px,env(safe-area-inset-top))}
-  #desk .icons{grid-template-columns:repeat(4,calc((100vw - 32px) / 4));gap:8px 0}
-  #iconsL{order:2} #roomwin{order:1} #iconsR{display:none}
-  .icon .lb{white-space:nowrap;overflow-wrap:normal;max-width:none;padding:2px}
-  :root{--t8:8px;--txt:16px}
+@media (max-width:640px){
+  :root{--t8:8px;--txt:18px}
   .win .body{padding:12px}
-  .task{max-width:110px}
+  .task{max-width:100px}
+  #mus{max-width:60px}
+  .icon{width:88px}
 }
 @media (prefers-reduced-motion:reduce){
-  .icon.show,#hint.on,.tbar .dot.blink,#fx.flick{animation:none}
+  .icon.show,#hint.on,#fx.flick,#hero.show{animation:none}
   #taskbar.up{transition:none}
 }
 </style>
@@ -187,22 +204,21 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
 <!-- ЭКРАН 2 -->
 <div id="os" aria-hidden="true">
   <div id="desk">
-    <nav class="icons" id="iconsL" aria-label="Иконки"></nav>
-    <div id="roomwin">
-      <div class="tbar"><span class="dot blink"></span><span class="tt">BANY.EXE — КОМНАТА</span><span>LIVE</span></div>
-      <div id="roomwrap"><canvas id="room" width="1024" height="1024" aria-label="Пиксельная комната: я за столом, спиной к камере"></canvas></div>
-    </div>
-    <nav class="icons" id="iconsR" aria-label="Приложения"></nav>
+    <div id="hero" role="button" tabindex="0" aria-label="Это я. Нажми, чтобы поговорить"><canvas class="px"></canvas></div>
+    <div id="bubble" hidden></div>
   </div>
   <div id="wins"></div>
   <div id="menu" hidden role="menu"></div>
   <div id="taskbar">
     <button id="start" type="button" aria-haspopup="true" aria-expanded="false">ПУСК</button>
     <div id="tasks"></div>
+    <button id="mus" type="button" hidden aria-label="Сейчас играет">♪</button>
     <button id="snd" type="button" aria-label="Звук">ЗВУК</button>
     <span id="clock">--:--</span>
   </div>
 </div>
+<canvas id="mosaic" class="px"></canvas>
+<canvas id="room" width="1024" height="1024" hidden></canvas>
 <div id="flash"></div>
 <div id="fx"></div>
 
@@ -213,7 +229,7 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
    (monitor.jpg и room.png оба 1024x1024).
    ===================================================================== */
 const CONFIG = {
-  // Палитра ОС: 9 цветов интерфейса + цвета экранов в комнате (см. room.screens). Один тёплый акцент — красный неон.
+  // Палитра ОС. Один тёплый акцент — красный неон (он же цвет худи персонажа).
   colors: {
     bg:'#050a07',      // почти чёрный фон
     panel:'#0b1a10',   // панели
@@ -226,7 +242,7 @@ const CONFIG = {
     black:'#000000'
   },
 
-  // Тайминги, мс. fps — частота покадровых анимаций (комната, дождь), по ТЗ 8–12.
+  // Тайминги, мс. fps — частота покадровых анимаций (комната, дождь, персонаж), по ТЗ 8–12.
   timing: {
     boot: 600,         // тёмный экран с курсором до начала дождя
     rain: 3000,        // сколько скатывается код
@@ -234,10 +250,11 @@ const CONFIG = {
     line: 220,         // яркая линия ЭЛТ
     unfold: 520,       // раскрытие в комнату
     dive: 1700,        // падение камеры в монитор
-    zoomOut: 1500,     // отъезд от комнаты до рабочего стола
-    iconStagger: 70,   // задержка между появлением иконок
+    mosaic: 1300,      // распад комнаты на пиксели и появление рабочего стола
+    iconStagger: 60,   // задержка между появлением иконок
     fps: 10,           // анимации в комнате
-    rainFps: 12        // код-дождь
+    rainFps: 12,       // код-дождь
+    heroFps: 4         // дыхание персонажа
   },
 
   // Фото монитора. glass — углы стекла (ЛВ, ПВ, ПН, ЛН) в пикселях фото; safe — область, которая
@@ -245,7 +262,6 @@ const CONFIG = {
   // Если меняешь фото: положи monitor.jpg и запусти tools/key_monitor.py — он вырежет хромакей
   // в monitor.webp и подскажет углы.
   monitor: {
-    photo: 'assets/monitor.webp',
     glass: [[262,301],[745,298],[753,636],[253,635]],
     safe: [220, 260, 800, 910]
   },
@@ -255,7 +271,6 @@ const CONFIG = {
   crt: { w: 256, h: 174, crop: [0, 168, 1024, 696] },
 
   // Комната (твоя сцена). Экраны оживают только там, где маска room-screens.png (её делает tools/make_masks.py).
-  // rect — [x, y, w, h] в пикселях room.png; kind — что показывать; colors — палитра экрана.
   room: {
     src: 'assets/room.png',
     screensMask: 'assets/room-screens.png',
@@ -269,29 +284,93 @@ const CONFIG = {
     ]
   },
 
+  // Персонаж на рабочем столе: пиксельная картинка 24×40, каждая буква — цвет из palette, точка — пусто.
+  // Рисуй прямо здесь. Строки 0–12 — голова (поворачивается к иконке под курсором), 0–27 — «дышат».
+  hero: {
+    palette: { o:'#140a10', H:'#4a2418', h:'#7a3e26', i:'#b0643a', K:'#1c1c26', k:'#50506a', S:'#c98a6a', s:'#8f5a46',
+               R:'#b0283c', r:'#761628', L:'#e0506a', P:'#2a2e48', p:'#1a1c30', B:'#0e0e14', b:'#44445a' },
+    sprite: [
+      "..........i....i........",
+      ".......i..hi..ih..i.....",
+      "......ihi.hHihhH.ih.....",
+      ".....ohhhihHhhhHhhho....",
+      "....oKKKkKHhhhHKkKKKo...",
+      "....oHHhHHhhhHHhhHHHo...",
+      "...ohHhhHhhHHhhhHHhhho..",
+      "...oHHhHHhhHhhhHHhhHHo..",
+      "..oKkHhHhhHHhhHHhhHHkKo.",
+      "..oKKHHhhHHhhHHhhhHHKKo.",
+      "..oKKHHHhHHhHHHhhHHHKKo.",
+      "...oKoHHHHHHHHHHHHHoKo..",
+      "....o.oHHHHHHHHHHHo.o...",
+      "......osSSSSSSSSso......",
+      "....orLLRRRRRRRRLLro....",
+      "...orRoLRrrrrrrrRLoRro..",
+      "..orRRoRrrrrrrrrrRoRRro.",
+      "..oRRRoRRrrrrrrrRRoRRRo.",
+      ".orRRRorRRrrrrrRRroRRro.",
+      ".oRRLRorRRRRRRRRRroRLRo.",
+      ".oRRLRorRRRRRRRRRroRLRo.",
+      ".oRRLRorRRRRRRRRRroRLRo.",
+      ".oRRRRorRRRRRRRRRroRRRo.",
+      ".oRRRRorRRRRRRRRRroRRRo.",
+      ".orRRRorRRRRRRRRRroRRro.",
+      ".orRRRorRRRRRRRRRroRRro.",
+      ".orrRRorrRRRRRRRrroRrro.",
+      ".oSSssorrrrrrrrrrroSSso.",
+      ".osSSsoppPPPPPPppposSso.",
+      "..oooo.oPPPPoPPPPo.ooo..",
+      ".......oPPPPoPPPPo......",
+      ".......oPPPpoPpPPo......",
+      ".......oPPPpoPpPPo......",
+      ".......oPPPpoPpPPo......",
+      ".......oPPPpoPpPPo......",
+      ".......oPPPpoPpPPo......",
+      "......opPPPpopPPPpo.....",
+      "......oBBBBooBBBBBo.....",
+      ".....obBBBBoobBBBBBo....",
+      ".....oooooo..oooooo....."
+    ],
+    // что он говорит: первая фраза — приветствие, остальные по клику по кругу
+    phrases: [
+      'Привет! Я Никита. Кликай по папкам вокруг меня.',
+      'Я QA-инженер: ловлю баги до того, как их поймаешь ты.',
+      'Побей мой рекорд в тетрисе. Он, кстати, честный.',
+      'Музыка в плеере — старая классика в 8 битах.',
+      'Пиши в почту или в Telegram, я отвечаю быстро.',
+      'Не открывай ВИРУС.EXE. Ладно, открывай.'
+    ]
+  },
+
   // Звук синтезируется прямо в браузере (WebAudio), файлов нет. Включается после первого клика.
   sound: { enabled: true, volume: 0.22, hum: true },
 
-  // Иконки рабочего стола. icon — номер картинки в assets/icons.png (слева направо, с нуля):
-  // 0 человек, 1 папка, 2 почта, 3 терминал, 4 глобус, 5 музыка, 6 камера, 7 календарь, 8 корзина, 9 вирус, 10 загрузка, 11 документ
+  // Иконки рабочего стола — раскладываются по эллипсу вокруг персонажа, по часовой стрелке от верха.
+  // icon — номер картинки в assets/icons.png (слева направо, с нуля):
+  // 0 человек, 1 папка, 2 почта, 3 терминал, 4 глобус, 5 музыка, 6 камера, 7 календарь, 8 корзина, 9 вирус,
+  // 10 загрузка, 11 документ, 12 блоки, 13 машинка, 14 карты, 15 кубок, 16 монитор, 17 геймпад, 18 корона, 19 пластинка
   icons: [
-    { id:'about',    label:'ОБО МНЕ',    icon:0,  side:'left'  },
-    { id:'projects', label:'ПРОЕКТЫ',    icon:1,  side:'left'  },
-    { id:'mail',     label:'ПОЧТА',      icon:2,  side:'left'  },
-    { id:'terminal', label:'ТЕРМИНАЛ',   icon:3,  side:'left'  },
-    { id:'web',      label:'ИНТЕРНЕТ',   icon:4,  side:'left'  },
-    { id:'downloads',label:'ЗАГРУЗКИ',   icon:10, side:'left'  },
-    { id:'music',    label:'МУЗЫКА',     icon:5,  side:'right' },
-    { id:'camera',   label:'КАМЕРА',     icon:6,  side:'right' },
-    { id:'calendar', label:'КАЛЕНДАРЬ',  icon:7,  side:'right' },
-    { id:'trash',    label:'КОРЗИНА',    icon:8,  side:'right' },
-    { id:'virus',    label:'ВИРУС.EXE',  icon:9,  side:'right' },
-    { id:'readme',   label:'README.TXT', icon:11, side:'right' }
+    { id:'about',    label:'ОБО МНЕ',    icon:0  },
+    { id:'projects', label:'ПРОЕКТЫ',    icon:1  },
+    { id:'tetris',   label:'ТЕТРИС',     icon:12 },
+    { id:'racer',    label:'ГОНКИ',      icon:13 },
+    { id:'solitaire',label:'СОЛИТЕР',    icon:14 },
+    { id:'scores',   label:'РЕКОРДЫ',    icon:15 },
+    { id:'music',    label:'ПЛЕЕР',      icon:5  },
+    { id:'room',     label:'КОМНАТА',    icon:6  },
+    { id:'calendar', label:'КАЛЕНДАРЬ',  icon:7  },
+    { id:'trash',    label:'КОРЗИНА',    icon:8  },
+    { id:'virus',    label:'ВИРУС.EXE',  icon:9  },
+    { id:'readme',   label:'README.TXT', icon:11 },
+    { id:'downloads',label:'ЗАГРУЗКИ',   icon:10 },
+    { id:'web',      label:'ИНТЕРНЕТ',   icon:4  },
+    { id:'terminal', label:'ТЕРМИНАЛ',   icon:3  },
+    { id:'mail',     label:'ПОЧТА',      icon:2  }
   ],
 
   // Окна. w — ширина в px (на телефоне окно займёт всю ширину). type:
   //   html — свой HTML в поле html;  img — картинка src (+ необязательный caption);
-  //   terminal / music / camera / calendar / downloads — встроенные приложения (код ниже, раздел APPS).
+  //   terminal / music / room / calendar / downloads / tetris / racer / solitaire / scores — встроенные приложения (раздел APPS).
   windows: {
     about: { title:'ОБО_МНЕ.TXT', w:520, type:'html', html:`
       <div class="about"><canvas width="40" height="40" data-avatar="assets/avatar.jpg" class="px"></canvas>
@@ -337,33 +416,73 @@ const CONFIG = {
       caption:'Здесь лежат баги, пойманные до релиза. Восстановлению не подлежат.' },
     virus: { title:'SHUTDOWN.EXE', w:540, type:'img', src:'assets/virus.jpg', effect:'glitch' },
     terminal:  { title:'ТЕРМИНАЛ', w:560, type:'terminal' },
-    music:     { title:'СИНТЕЗАТОР', w:420, type:'music' },
-    camera:    { title:'КАМЕРА — CAM_01', w:420, type:'camera' },
+    music:     { title:'ПЛЕЕР — BANY AMP', w:440, type:'music' },
+    room:      { title:'КОМНАТА — CAM_01 — LIVE', w:560, type:'room' },
     calendar:  { title:'КАЛЕНДАРЬ', w:380, type:'calendar' },
     downloads: { title:'ЗАГРУЗКИ', w:460, type:'downloads',
       files:[ ['WORD_PROC.PNG','assets/terminal.jpg'], ['REGISTERS.PNG','assets/register.jpg'], ['DOWNLOAD.PNG','assets/download.jpg'] ] },
+    tetris:    { title:'ТЕТРИС', w:380, type:'tetris', music:'korobeiniki' },   // music — трек, который включается вместе с игрой
+    racer:     { title:'ГОНКИ', w:340, type:'racer', music:'theme' },
+    solitaire: { title:'СОЛИТЕР — КОСЫНКА', w:520, type:'solitaire' },
+    scores:    { title:'ТАБЛИЦА РЕКОРДОВ', w:440, type:'scores' },
 
     readme: { title:'README.TXT', w:560, type:'html', html:`
-      <h2>BANY OS 1.0</h2>
-      <p>Визитка в виде ретро-ОС. Перетаскивай окна за заголовок, Esc — закрыть окно, «ПУСК → ВЫКЛЮЧИТЬ» — назад к монитору.</p>
+      <h2>BANY OS 1.1</h2>
+      <p>Визитка в виде ретро-ОС. Перетаскивай окна за заголовок, Esc — закрыть окно, «ПУСК → ВЫКЛЮЧИТЬ» — назад к монитору.
+      В играх: стрелки, пробел или кнопки под экраном.</p>
       <h3>ИСТОЧНИКИ И ЛИЦЕНЗИИ</h3>
       <ul class="rows">
-        <li><b>ИКОНКИ</b><span>pixelarticons, Gerrit Halfmann — MIT. Перекрашены в палитру ОС.</span></li>
-        <li><b>ШРИФТЫ</b><span>Press Start 2P (CodeMan38) и Pixelify Sans (Stefie Justprince) — SIL OFL 1.1, Google Fonts.</span></li>
-        <li><b>КОМНАТА, МОНИТОР</b><span>Сцены автора сайта.</span></li>
+        <li><b>ИКОНКИ</b><span>pixelarticons, Gerrit Halfmann — MIT. Перекрашены в палитру ОС. Иконка «карты» нарисована отдельно.</span></li>
+        <li><b>ШРИФТЫ</b><span>Press Start 2P (CodeMan38) и Tiny5 (Gissio) — SIL OFL 1.1, Google Fonts.</span></li>
+        <li><b>МУЗЫКА</b><span>«BANY THEME» — своя. «Коробейники» (народная), Григ, Бетховен — общественное достояние; 8-битные аранжировки свои.</span></li>
+        <li><b>КОМНАТА, МОНИТОР</b><span>Сцены автора сайта. Персонаж нарисован по пикселю в CONFIG.hero.</span></li>
         <li><b>ЗВУК</b><span>Синтезируется в браузере, файлов нет.</span></li>
       </ul>` }
+  },
+
+  // Рекорды. Без endpoint хранятся в браузере игрока (localStorage).
+  // Для общей таблицы укажи адрес API: GET {endpoint}?game=tetris → [{name,score,date}], POST {endpoint} {game,name,score}.
+  leaderboard: {
+    endpoint: '',
+    size: 10,
+    games: { tetris:'ТЕТРИС', racer:'ГОНКИ', solitaire:'СОЛИТЕР' },
+    // стартовые записи, чтобы таблица не была пустой
+    seed: { tetris:[['BANY',4200],['QA_BOT',2500],['PYTEST',1200]], racer:[['BANY',380],['SELENIUM',210],['CI_CD',120]], solitaire:[['BANY',2900],['POSTMAN',1500]] }
+  },
+
+  // Музыка. Ноты: буква + (#|b) + октава, «/n» — длительность в долях (по умолчанию 1), R — пауза, | — просто разделитель тактов.
+  // div — сколько четвертей в одной доле (0.5 = восьмая). bar — долей в такте.
+  // chords — бас по тактам (корень; «A2:E2» — смена на половине такта). accel — ускоряться на каждом повторе.
+  music: {
+    volume: 0.5,
+    tracks: [
+      { id:'theme', title:'BANY THEME', author:'Никита Баннов', bpm:132, div:.5, bar:8, drums:true,
+        lead:'A4/2 C5 E5/2 D5 C5 B4 | A4/3 F4 A4/2 C5/2 | G4/2 C5 E5/2 G5 E5 C5 | D5/3 B4 G4/4 | A4 B4 C5 E5 A5/2 G5 E5 | F5/2 E5 C5 A4/2 C5 D5 | E5/2 D5 C5 G4/2 C5 E5 | D5/2 B4/2 G#4/4',
+        chords:['A2','F2','C3','G2','A2','F2','C3','G2:E2'] },
+      { id:'korobeiniki', title:'КОРОБЕЙНИКИ', author:'народная песня', bpm:150, div:.5, bar:8, drums:true,
+        lead:'E5/2 B4 C5 D5/2 C5 B4 | A4/2 A4 C5 E5/2 D5 C5 | B4/3 C5 D5/2 E5/2 | C5/2 A4/2 A4/2 R/2 | D5/3 F5 A5/2 G5 F5 | E5/3 C5 E5/2 D5 C5 | B4/2 B4 C5 D5/2 E5/2 | C5/2 A4/2 A4/2 R/2',
+        chords:['E2','A2','E2','A2','D2','C3','E2','A2'] },
+      { id:'mountain', title:'В ПЕЩЕРЕ ГОРНОГО КОРОЛЯ', author:'Э. Григ, 1875', bpm:116, div:.5, bar:8, accel:true,
+        lead:'B4 C#5 D5 E5 F#5 D5 F#5/2 | F5 C#5 F5/2 E5 C5 E5/2 | B4 C#5 D5 E5 F#5 D5 F#5 B5 | A5 F#5 D5 F#5 A5/4',
+        chords:['B2','F#2','B2','F#2'] },
+      { id:'elise', title:'К ЭЛИЗЕ', author:'Л. ван Бетховен, 1810', bpm:72, div:.25, wave:'triangle',
+        lead:'E5 D#5 | E5 D#5 E5 B4 D5 C5 | A4/2 R C4 E4 A4 | B4/2 R E4 G#4 B4 | C5/2 R E4 E5 D#5 | E5 D#5 E5 B4 D5 C5 | A4/2 R C4 E4 A4 | B4/2 R E4 C5 B4 | A4/4 R/2' },
+      { id:'ode', title:'ОДА К РАДОСТИ', author:'Л. ван Бетховен, 1824', bpm:120, div:.5, bar:8, drums:true,
+        lead:'E5/2 E5/2 F5/2 G5/2 | G5/2 F5/2 E5/2 D5/2 | C5/2 C5/2 D5/2 E5/2 | E5/3 D5 D5/4 | E5/2 E5/2 F5/2 G5/2 | G5/2 F5/2 E5/2 D5/2 | C5/2 C5/2 D5/2 E5/2 | D5/3 C5 C5/4',
+        chords:['C3','G2','C3','G2','C3','G2','C3','G2:C3'] }
+    ]
   },
 
   // Терминал: команда → ответ (строка или функция). help печатает список автоматически.
   terminal: {
     prompt: 'C:\\BANY>',
-    greeting: 'BANY OS [версия 1.0]\n(c) Никита Баннов, 2026. Введи help.',
+    greeting: 'BANY OS [версия 1.1]\n(c) Никита Баннов, 2026. Введи help.',
     commands: {
       whoami:   'Никита Баннов — QA-инженер. Автоматизация тестирования, Python, CI/CD.',
       skills:   'Manual QA · Test Automation · Python · Pytest · Selenium/Playwright · Postman · CI/CD · Telegram Bot API',
       contacts: 'e-mail: bany.bannov@gmail.com\ntelegram: @quebany\ngithub: banybannov',
       projects: 'CVIUM.BOT — бот для ATS-резюме. Набери: open projects',
+      games:    'tetris, racer, solitaire. Набери: open tetris',
       sudo:     'Доступ запрещён. Инцидент будет записан в тест-репорт.',
       hello:    'hello, world!!'
     }
@@ -379,6 +498,7 @@ const C = CONFIG, T = C.timing;
 const $ = id => document.getElementById(id);
 const root = document.documentElement;
 Object.entries(C.colors).forEach(([k,v]) => root.style.setProperty('--' + k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()), v));
+const COL = C.colors;
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
 let reduced = RM.matches;
 RM.addEventListener && RM.addEventListener('change', e => { reduced = e.matches; });
@@ -387,44 +507,57 @@ const ease = x => { x = clamp(x,0,1); return x*x*x*(x*(6*x-15)+10); };
 const lerp = (a,b,t) => a + (b-a)*t;
 function rnd(n){ const x = Math.sin(n*127.1 + 311.7)*43758.5453; return x - Math.floor(x); }
 function loadImg(src){ return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+const store = { get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+                set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* ---------------- 3x5 пиксельный шрифт для экранов ---------------- */
+/* ---------------- 3x5 пиксельный шрифт для экранов и игр ---------------- */
 const FONT = {'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001',
 '5':'111100111001111','6':'111100111101111','7':'111001010010010','8':'111101111101111','9':'111101111001111',
 'A':'111101111101101','B':'110101110101110','C':'111100100100111','D':'110101101101110','E':'111100110100111','F':'111100110100100',
-'R':'110101110101101','<':'001010100010001','>':'100010001010100','/':'001001010100100','=':'000111000111000','{':'011010110010011',
-'}':'110010011010110',';':'000010000010100','_':'000000000000111','#':'101111101111101',':':'000010000010000','.':'000000000000010',' ':'000000000000000'};
+'G':'111100101101111','H':'101101111101101','I':'111010010010111','J':'001001001101111','K':'101101110101101','L':'100100100100111',
+'M':'101111111101101','N':'110101101101101','O':'111101101101111','P':'111101111100100','Q':'111101101110011','R':'110101110101101',
+'S':'111100111001111','T':'111010010010010','U':'101101101101111','V':'101101101101010','W':'101101111111101','X':'101101010101101',
+'Y':'101101010010010','Z':'111001010100111','<':'001010100010001','>':'100010001010100','/':'001001010100100','=':'000111000111000',
+'{':'011010110010011','}':'110010011010110',';':'000010000010100','_':'000000000000111','#':'101111101111101',':':'000010000010000',
+'.':'000000000000010','-':'000000111000000','!':'010010010000010','?':'111001010000010','+':'000010111010000',' ':'000000000000000'};
 const CH = '0123456789ABCDEF<>/={};_#';
 function glyph(ctx, ch, x, y, col){ const g = FONT[ch]; if(!g) return; ctx.fillStyle = col;
   for(let r=0;r<5;r++) for(let q=0;q<3;q++) if(g.charCodeAt(r*3+q) === 49) ctx.fillRect(x+q, y+r, 1, 1); }
-function text(ctx, s, x, y, col){ for(const ch of s){ glyph(ctx, ch, x, y, col); x += 4; } }
+function text(ctx, s, x, y, col){ for(const ch of String(s).toUpperCase()){ glyph(ctx, ch, x, y, col); x += 4; } }
+function textC(ctx, s, cx, y, col){ text(ctx, s, Math.round(cx - (String(s).length*4 - 1)/2), y, col); }
 
 /* =====================================================================
    ЗВУК (WebAudio, синтез)
    ===================================================================== */
 const SFX = {
-  ctx:null, out:null, on:C.sound.enabled, humNode:null,
+  ctx:null, out:null, sfx:null, mus:null, on:C.sound.enabled, humNode:null,
   init(){ if(this.ctx) return; const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
-    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.on ? C.sound.volume : 0; this.out.connect(this.ctx.destination); },
-  set(on){ this.on = on; if(this.out) this.out.gain.setTargetAtTime(on ? C.sound.volume : 0, this.ctx.currentTime, .05);
+    this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = this.on ? 1 : 0; this.out.connect(this.ctx.destination);
+    this.sfx = this.ctx.createGain(); this.sfx.gain.value = C.sound.volume; this.sfx.connect(this.out);
+    this.mus = this.ctx.createGain(); this.mus.gain.value = C.music.volume*.4; this.mus.connect(this.out); },
+  set(on){ this.on = on; if(this.out) this.out.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, .05);
     $('snd').textContent = on ? 'ЗВУК' : 'ТИХО'; $('snd0').textContent = on ? 'ЗВУК: ВКЛ' : 'ЗВУК: ВЫКЛ'; },
-  tone(f, d, type='square', v=.3, f2){ if(!this.ctx || !this.on) return; const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+  tone(f, d, type='square', v=.3, f2, dest, at){ if(!this.ctx) return; const t = at || this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(f, t); if(f2) o.frequency.exponentialRampToValueAtTime(f2, t+d);
-    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t+d); o.connect(g); g.connect(this.out); o.start(t); o.stop(t+d+.02); },
-  noise(d, v=.3, f0=4000, f1=200){ if(!this.ctx || !this.on) return; const t = this.ctx.currentTime, n = this.ctx.sampleRate*d, b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), a = b.getChannelData(0);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t+d); o.connect(g); g.connect(dest || this.sfx); o.start(t); o.stop(t+d+.02); },
+  noise(d, v=.3, f0=4000, f1=200, dest, at){ if(!this.ctx) return; const t = at || this.ctx.currentTime, n = Math.max(1, this.ctx.sampleRate*d|0), b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), a = b.getChannelData(0);
     for(let i=0;i<n;i++) a[i] = Math.random()*2-1; const s = this.ctx.createBufferSource(); s.buffer = b;
     const fl = this.ctx.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.setValueAtTime(f0, t); fl.frequency.exponentialRampToValueAtTime(f1, t+d);
     const g = this.ctx.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t+d);
-    s.connect(fl); fl.connect(g); g.connect(this.out); s.start(t); },
+    s.connect(fl); fl.connect(g); g.connect(dest || this.sfx); s.start(t); },
   click(){ this.tone(1400, .03, 'square', .12); },
   open(){ this.tone(660, .06, 'square', .12); setTimeout(() => this.tone(990, .08, 'square', .1), 60); },
   close(){ this.tone(520, .07, 'square', .1, 260); },
   power(){ this.tone(15600, 1.2, 'sine', .05); this.tone(90, .25, 'sine', .5, 40); this.noise(.35, .15, 3000, 300); },
   dive(){ this.noise(1.2, .25, 300, 4000); this.tone(110, 1.2, 'sawtooth', .06, 880); },
   error(){ this.tone(140, .25, 'square', .25); setTimeout(() => this.tone(110, .35, 'square', .25), 220); },
+  blip(){ this.tone(880 + Math.random()*200, .03, 'square', .06); },
+  coin(){ this.tone(988, .07, 'square', .12); setTimeout(() => this.tone(1319, .18, 'square', .12), 70); },
+  boom(){ this.noise(.6, .5, 1200, 60); this.tone(120, .5, 'sawtooth', .2, 30); },
   hum(on){ if(!this.ctx || !C.sound.hum) return;
     if(on && !this.humNode){ const o = this.ctx.createOscillator(), o2 = this.ctx.createOscillator(), g = this.ctx.createGain();
-      o.type = 'sine'; o.frequency.value = 50; o2.type = 'sine'; o2.frequency.value = 100; g.gain.value = .035;
+      o.type = 'sine'; o.frequency.value = 50; o2.type = 'sine'; o2.frequency.value = 100; g.gain.value = .008;
       o.connect(g); o2.connect(g); g.connect(this.out); o.start(); o2.start(); this.humNode = {o, o2, g}; }
     if(!on && this.humNode){ const h = this.humNode; h.g.gain.setTargetAtTime(0, this.ctx.currentTime, .1); setTimeout(() => { h.o.stop(); h.o2.stop(); }, 500); this.humNode = null; } }
 };
@@ -432,6 +565,46 @@ function toggleSound(){ SFX.init(); SFX.set(!SFX.on); if(SFX.on) SFX.click(); }
 $('snd').addEventListener('click', toggleSound);
 $('snd0').addEventListener('click', e => { e.stopPropagation(); toggleSound(); });
 document.addEventListener('pointerdown', () => { SFX.init(); if(SFX.ctx && SFX.ctx.state === 'suspended') SFX.ctx.resume(); }, {capture:true});
+
+/* =====================================================================
+   МУЗЫКА: маленький трекер (мелодия + бас + шум), ноты из CONFIG.music
+   ===================================================================== */
+const Player = (() => {
+  const NOTE = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  const hz = s => { const m = /^([A-G])(#|b)?(\d)$/.exec(s); if(!m) return 0; const n = NOTE[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (+m[3]+1)*12; return 440*Math.pow(2, (n-69)/12); };
+  const parse = str => (str || '').split(/\s+/).filter(t => t && t !== '|').map(t => { const [n, d] = t.split('/'); return {f: n === 'R' ? 0 : hz(n), d: +(d || 1)}; });
+  const tracks = C.music.tracks.map(t => { const lead = parse(t.lead);
+    const bass = []; (t.chords || []).forEach(ch => ch.split(':').forEach((r, i, arr) => { const k = t.bar/arr.length; for(let j=0;j<k;j++) bass.push(hz(r)*(j%2 ? 2 : 1)); }));
+    return Object.assign({}, t, {L:lead, B:bass}); });
+  let cur = null, playing = false, timer = null, nextT = 0, li = 0, lpos = 0, step = 0, loop = 0, an = null, owner = null;
+  const listeners = new Set(), emit = () => listeners.forEach(f => f());
+  // длительность одной доли в секундах
+  const unit = () => 60/(cur.bpm*(cur.accel ? Math.min(1.9, 1 + loop*.18) : 1))*cur.div;
+  function sched(){
+    const ctx = SFX.ctx; if(!ctx) return;
+    while(nextT < ctx.currentTime + .15){
+      const u = unit();
+      if(lpos <= 0){ const n = cur.L[li]; if(n.f) SFX.tone(n.f, Math.max(.05, n.d*u*.9), cur.wave || 'square', .16, 0, SFX.mus, nextT); lpos = n.d; li++; if(li >= cur.L.length){ li = 0; loop++; } }
+      if(cur.B.length) SFX.tone(cur.B[step % cur.B.length], u*.8, 'triangle', .3, 0, SFX.mus, nextT);
+      if(cur.drums && step % 2 === 0) SFX.noise(.03, step % 8 === 4 ? .22 : .08, 8000, 6000, SFX.mus, nextT);
+      lpos--; step++; nextT += u;
+    }
+  }
+  return {
+    tracks, listeners,
+    get current(){ return cur; }, get playing(){ return playing; },
+    analyser(){ if(!SFX.ctx) return null; if(!an){ an = SFX.ctx.createAnalyser(); an.fftSize = 64; SFX.mus.connect(an); } return an; },
+    play(id, by){ SFX.init(); if(!SFX.ctx) return; const t = tracks.find(x => x.id === id) || tracks[0];
+      if(playing && cur === t){ if(by) owner = by; return; }
+      this.stop(true); cur = t; owner = by || null; li = lpos = step = loop = 0; nextT = SFX.ctx.currentTime + .05; playing = true; timer = setInterval(sched, 25); sched(); emit(); },
+    stop(silent){ clearInterval(timer); timer = null; playing = false; owner = null; if(!silent) emit(); },
+    stopIf(by){ if(playing && owner === by) this.stop(); },
+    next(){ const i = cur ? tracks.indexOf(cur) : -1; this.play(tracks[(i+1) % tracks.length].id); }
+  };
+})();
+const musBtn = $('mus');
+Player.listeners.add(() => { musBtn.hidden = !Player.playing; if(Player.playing) musBtn.textContent = '♪ ' + Player.current.title; });
+musBtn.addEventListener('click', () => openWin('music'));
 
 /* =====================================================================
    КОМНАТА: базовая картинка + оживающие экраны (рисуются по маске)
@@ -447,7 +620,7 @@ const scr = C.room.screens.map(s => { const c = document.createElement('canvas')
 const DRAW = {
   log(x, w, h, st, col){ x.fillStyle = col[0]; x.fillRect(0,0,w,h);
     for(let i=0;i<h;i+=3){ const n = i/3 + st; const len = 4 + Math.floor(rnd(n*3.1)*(w-12)), x0 = 2 + Math.floor(rnd(n*5.7)*4);
-      x.fillStyle = rnd(n*7.3) > .85 ? col[3] : rnd(n*9.1) > .5 ? col[2] : col[1]; x.fillRect(x0, h - 3 - ((i + 0) % h), len, 1); }
+      x.fillStyle = rnd(n*7.3) > .85 ? col[3] : rnd(n*9.1) > .5 ? col[2] : col[1]; x.fillRect(x0, h - 3 - (i % h), len, 1); }
     x.fillStyle = col[3]; x.fillRect(0, (st*2) % h, w, 1); },
   bars(x, w, h, st, col){ x.fillStyle = col[0]; x.fillRect(0,0,w,h); const s = Math.floor(st/2);
     for(let i=0;i<7;i++){ const bh = 2 + Math.floor(rnd(i*9 + s*13)*(h-6)); x.fillStyle = col[1 + i%3]; x.fillRect(2 + i*4, h-2-bh, 3, bh); }
@@ -540,7 +713,7 @@ function applyCamera(){
 }
 
 // Код-дождь: колонки символов 3x5 в ячейках 4x6, скатываются сверху вниз
-const RC = CW/4|0, RR = CH_/6|0, GL = [C.colors.hi, C.colors.phos, C.colors.mid, C.colors.dim, '#0f2a16'];
+const RC = CW/4|0, RR = CH_/6|0, GL = [COL.hi, COL.phos, COL.mid, COL.dim, '#0f2a16'];
 const cols = Array.from({length:RC}, (_,c) => ({d: rnd(c)*900, v: 9 + rnd(c+99)*16, L: 5 + rnd(c+7)*14}));
 function drawRain(ms){
   const t = Math.floor(ms/1000*T.rainFps)/T.rainFps*1000;   // время квантуется под rainFps
@@ -563,7 +736,7 @@ function drawRoomOnCrt(hFrac){
   lx.imageSmoothingEnabled = true; lx.imageSmoothingQuality = 'high';
   const sh = CROP[3]*hFrac, sy = CROP[1] + (CROP[3]-sh)/2;
   if(roomReady) lx.drawImage(roomC, CROP[0], sy, CROP[2], sh, 0, y, CW, h);
-  if(hFrac < 1){ lx.fillStyle = C.colors.hi; lx.fillRect(0, y, CW, 1); lx.fillRect(0, y+h-1, CW, 1); }
+  if(hFrac < 1){ lx.fillStyle = COL.hi; lx.fillRect(0, y, CW, 1); lx.fillRect(0, y+h-1, CW, 1); }
 }
 
 let state = 'boot', t0 = performance.now(), lastCrt = -1;
@@ -571,12 +744,12 @@ function crtFrame(now){
   const el = now - t0, a = T.boot, b = a + T.rain, c = b + T.collapse, d = c + T.line, e = d + T.unfold;
   if(state === 'boot' || state === 'rain'){
     if(reduced || el >= e){ toReady(); }
-    else if(el < a){ lx.fillStyle = '#020503'; lx.fillRect(0,0,CW,CH_); if(Math.floor(el/250)%2) text(lx, '_', 4, 4, C.colors.phos); text(lx, 'BANY OS', 4, CH_-10, C.colors.dim); }
+    else if(el < a){ lx.fillStyle = '#020503'; lx.fillRect(0,0,CW,CH_); if(Math.floor(el/250)%2) text(lx, '_', 4, 4, COL.phos); text(lx, 'BANY OS', 4, CH_-10, COL.dim); }
     else if(el < b){ if(state === 'boot'){ state = 'rain'; SFX.power(); } drawRain(el - a); lx.drawImage(rain, 0, 0); }
     else if(el < c){ const u = Math.floor((el-b)/T.collapse*6)/6, h = Math.max(2, Math.round(CH_*(1-u)*(1-u)));
       lx.fillStyle = '#000'; lx.fillRect(0,0,CW,CH_); lx.imageSmoothingEnabled = false; lx.drawImage(rain, 0, 0, CW, CH_, 0, Math.round((CH_-h)/2), CW, h); }
     else if(el < d){ lx.fillStyle = '#000'; lx.fillRect(0,0,CW,CH_); const w = Math.round(CW*(1 - (el-c)/T.line*.15));
-      lx.fillStyle = C.colors.hi; lx.fillRect((CW-w)>>1, (CH_>>1) - 1, w, 2); }
+      lx.fillStyle = COL.hi; lx.fillRect((CW-w)>>1, (CH_>>1) - 1, w, 2); }
     else { const u = Math.floor((el-d)/T.unfold*10)/10; drawRoomOnCrt(Math.max(.02, 1-(1-u)*(1-u))); }
     present();
     glow.style.opacity = state === 'rain' ? .55 : .35;
@@ -601,84 +774,135 @@ scene.addEventListener('pointermove', e => scene.classList.toggle('hot', state =
 /* =====================================================================
    ЭКРАН 2: ОС
    ===================================================================== */
-const os = $('os'), desk = $('desk'), roomwin = $('roomwin'), roomwrap = $('roomwrap'), taskbar = $('taskbar'), fx = $('fx');
+const os = $('os'), desk = $('desk'), taskbar = $('taskbar'), fx = $('fx'), mosaic = $('mosaic'), mctx = mosaic.getContext('2d');
 let osE = 0;
 
-// Размеры: иконки — целый масштаб пикселей (32 → 64/96/... физических пикселей), комната — без обрезки
-function layoutOS(){
-  const dpr = window.devicePixelRatio || 1, narrow = matchMedia('(max-aspect-ratio:4/5),(max-width:640px)').matches;
-  const icoTarget = narrow ? Math.min(48, (vw - 32)/4 - 24) : (vh < 700 ? 48 : 64);
-  const icoDev = Math.max(1, Math.floor(icoTarget*dpr/32))*32;            // кратно 32 физическим пикселям
-  const ico = icoDev/dpr; root.style.setProperty('--ico', ico + 'px');
-  const tb = parseFloat(getComputedStyle(root).getPropertyValue('--tb')) || 40;
-  let D;
-  if(narrow){ const rowsH = 3*(ico + 40) + 16; D = Math.min(vw - 32, vh - tb - rowsH - 24 - 48); }
-  else { D = Math.min(vh - tb - 24 - 40, vw - 2*(2*(ico + 40) + 8) - 64); }
-  D = Math.max(160, D);
-  // если комнату можно показать 1:1 или крупнее — берём целый множитель физических пикселей
-  const dev = D*dpr; D = (dev >= RS ? Math.floor(dev/RS)*RS : Math.floor(dev))/dpr;
-  root.style.setProperty('--room', D + 'px');
-  // на телефоне все иконки в одну сетку 4×3, на десктопе — по бокам от комнаты
-  iconEls.forEach((el, i) => { const p = $(narrow || C.icons[i].side === 'left' ? 'iconsL' : 'iconsR'); if(el.parentNode !== p) p.appendChild(el); });
-  roomC.classList.toggle('px', D*dpr >= RS);   // увеличение — чёткие пиксели, уменьшение — сглаживание
+/* ---------------- персонаж ---------------- */
+const hero = $('hero'), heroC = hero.querySelector('canvas'), hctx = heroC.getContext('2d'), bubble = $('bubble');
+const HW = C.hero.sprite[0].length, HH = C.hero.sprite.length;
+heroC.width = HW + 8; heroC.height = HH + 4;           // запас по краям: тень и поворот головы
+let heroLook = 0, heroFrame = 0, heroStep = -1, phrase = 0, bubbleT = null, typeIv = null;
+function drawHero(){
+  hctx.clearRect(0, 0, heroC.width, heroC.height);
+  // тень под ногами
+  hctx.fillStyle = '#0f2a16'; const sy = HH;
+  hctx.fillRect(8, sy, HW - 8, 1); hctx.fillRect(6, sy + 1, HW - 4, 1); hctx.fillRect(8, sy + 2, HW - 8, 1);
+  const breathe = heroFrame % 2;
+  C.hero.sprite.forEach((row, y) => {
+    const dy = y <= 27 ? breathe : 0, dx = y <= 12 ? heroLook : 0;
+    for(let x=0;x<row.length;x++){ const ch = row[x]; if(ch === '.') continue; hctx.fillStyle = C.hero.palette[ch] || '#f0f'; hctx.fillRect(x + 4 + dx, y + dy, 1, 1); }
+  });
 }
-
-function prepOS(e){
-  osE = e; const ee = ease(e);
-  roomC.style.transform = 'none';
-  const R = roomwrap.getBoundingClientRect(), f = R.width/RS;
-  const pc = [(CROP[0] + CROP[2]/2)*f, (CROP[1] + CROP[3]/2)*f];
-  const qw = Qend[1][0] - Qend[0][0], m = qw/(CROP[2]*f);       // такой же кадр, каким был экран в конце падения
-  const qc = [vw/2, vh/2], c1 = [R.left + pc[0], R.top + pc[1]];
-  const s = Math.pow(m, 1 - ee), T_ = [lerp(qc[0], c1[0], ee), lerp(qc[1], c1[1], ee)];
-  roomC.style.transform = ee >= 1 ? 'none' : `translate(${T_[0] - R.left - s*pc[0]}px,${T_[1] - R.top - s*pc[1]}px) scale(${s})`;
-  roomwin.classList.toggle('frame', ee > .85);
-  roomwrap.style.overflow = ee >= 1 ? 'hidden' : 'visible';
-  taskbar.classList.toggle('up', ee > .7);
-  if(ee > .6) showIcons(); else hideIcons();
+function heroTick(now){
+  const st = Math.floor(now/1000*T.heroFps); if(st === heroStep) return; heroStep = st;
+  if(!reduced) heroFrame = st % 4 === 0 ? 1 : 0;   // короткий «вдох» раз в секунду
+  drawHero();
 }
-const iconEls = [];
-let iconsShown = false;
-function showIcons(){ if(iconsShown) return; iconsShown = true;
-  iconEls.forEach((el, i) => { if(reduced) el.classList.add('show'); else el._t = setTimeout(() => el.classList.add('show'), i*T.iconStagger); }); }
-function hideIcons(){ if(!iconsShown) return; iconsShown = false; iconEls.forEach(el => { clearTimeout(el._t); el.classList.remove('show'); }); }
-
-function startDive(){
-  if(state !== 'ready') return;
-  hint.classList.remove('on'); scene.classList.remove('hot'); SFX.dive();
-  if(reduced){ dive = 1; applyCamera(); enterOS(); osE = 1; prepOS(1); state = 'inside'; return; }
-  state = 'dive';
+function say(textS){
+  clearTimeout(bubbleT); clearInterval(typeIv); bubble.hidden = false; bubble.textContent = '';
+  const left = parseFloat(hero.style.left) + parseFloat(hero.style.width)/2, top = parseFloat(hero.style.top);
+  bubble.style.left = Math.round(clamp(left, 140, desk.clientWidth - 140)) + 'px'; bubble.style.top = Math.round(top - 10) + 'px';
+  if(reduced){ bubble.textContent = textS; }
+  else { let i = 0; typeIv = setInterval(() => { bubble.textContent = textS.slice(0, ++i); if(i % 3 === 0) SFX.blip(); if(i >= textS.length) clearInterval(typeIv); }, 1000/30); }
+  bubbleT = setTimeout(() => { bubble.hidden = true; }, 2600 + textS.length*45);
 }
-function enterOS(){
-  layoutOS(); os.classList.add('on'); os.setAttribute('aria-hidden', 'false');
-  scene.style.visibility = 'hidden'; hint.style.visibility = 'hidden'; $('corner').hidden = true;
-  fx.classList.toggle('flick', !reduced); SFX.hum(true);
-}
-function leaveOS(){
-  if(state !== 'inside') return;
-  closeAll(); closeMenu(); SFX.close(); SFX.hum(false);
-  if(reduced){ exitToScene(); dive = 0; applyCamera(); toReady(); return; }
-  state = 'osout';
-}
-function exitToScene(){
-  os.classList.remove('on'); os.setAttribute('aria-hidden', 'true'); taskbar.classList.remove('up'); hideIcons(); roomwin.classList.remove('frame');
-  scene.style.visibility = 'visible'; hint.style.visibility = 'visible'; $('corner').hidden = false; fx.classList.remove('flick');
-}
+hero.addEventListener('click', () => { phrase = (phrase + 1) % C.hero.phrases.length; say(C.hero.phrases[phrase]); });
+hero.addEventListener('keydown', e => { if(e.key === 'Enter') hero.click(); });
 
 /* ---------------- иконки ---------------- */
+const iconEls = [];
+let iconsShown = false;
 C.icons.forEach(ic => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'icon';
   b.innerHTML = '<span class="ico px"></span><span class="lb"></span>';
   b.querySelector('.ico').style.backgroundPosition = `calc(var(--ico) * ${-ic.icon}) 0`;
   b.querySelector('.lb').textContent = ic.label;
   b.addEventListener('click', () => { SFX.click(); openWin(ic.id); });
-  $(ic.side === 'left' ? 'iconsL' : 'iconsR').appendChild(b); iconEls.push(b);
+  // персонаж поворачивает голову к иконке под курсором
+  b.addEventListener('pointerenter', () => { const c = parseFloat(b.style.left) + parseFloat(b.style.width)/2, h = parseFloat(hero.style.left) + parseFloat(hero.style.width)/2;
+    heroLook = Math.abs(c - h) < 24 ? 0 : c < h ? -1 : 1; drawHero(); });
+  b.addEventListener('pointerleave', () => { heroLook = 0; drawHero(); });
+  desk.appendChild(b); iconEls.push(b);
 });
+function showIcons(){ if(iconsShown) return; iconsShown = true;
+  hero.classList.add('show');
+  iconEls.forEach((el, i) => { if(reduced) el.classList.add('show'); else el._t = setTimeout(() => el.classList.add('show'), 300 + i*T.iconStagger); });
+  setTimeout(() => say(C.hero.phrases[0]), reduced ? 100 : 900); }
+function hideIcons(){ if(!iconsShown) return; iconsShown = false; hero.classList.remove('show'); bubble.hidden = true;
+  iconEls.forEach(el => { clearTimeout(el._t); el.classList.remove('show'); }); }
+
+// Раскладка: персонаж в центре, иконки — по эллипсу вокруг с равным шагом по длине дуги.
+// Размеры иконок и персонажа — целые множители физических пикселей (чёткость на любом devicePixelRatio).
+function layoutOS(){
+  const dpr = window.devicePixelRatio || 1, W = desk.clientWidth, H = desk.clientHeight, small = W < 640 || H < 560;
+  const icoDev = Math.max(1, Math.floor((small ? 40 : 64)*dpr/32))*32, ico = icoDev/dpr;
+  root.style.setProperty('--ico', ico + 'px');
+  const bw = small ? 88 : 96, bh = ico + 30;
+  const cxD = W/2, cyD = H/2;
+  let rx = W/2 - bw/2 - 8, ry = H/2 - bh/2 - 10;
+  rx = Math.min(rx, Math.max(ry*1.9, bw*1.6));
+  // персонаж влезает внутрь эллипса
+  const maxH = Math.min(2*ry - bh - 30, (2*rx - bw - 24)*heroC.height/heroC.width, H*.52);
+  const sDev = Math.max(1, Math.floor(maxH*dpr/heroC.height)), s = sDev/dpr;
+  const hw = heroC.width*s, hh = heroC.height*s;
+  Object.assign(hero.style, {width: hw + 'px', height: hh + 'px', left: Math.round(cxD - hw/2) + 'px', top: Math.round(cyD - hh/2) + 'px'});
+  // точки на эллипсе с равным шагом по длине
+  const N = iconEls.length, M = 720, pts = [], len = [0];
+  for(let i=0;i<=M;i++){ const a = -Math.PI/2 + i/M*Math.PI*2; pts.push([cxD + rx*Math.cos(a), cyD + ry*Math.sin(a)]); if(i) len.push(len[i-1] + Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1])); }
+  const L = len[M]; let j = 0;
+  iconEls.forEach((el, k) => { const target = L*k/N; while(len[j+1] < target) j++; const p = pts[j];
+    el.style.width = bw + 'px'; el.style.left = Math.round(p[0] - bw/2) + 'px'; el.style.top = Math.round(p[1] - bh/2) + 'px'; });
+  drawHero();
+}
+
+/* ---------------- переход: падение → комната рассыпается на пиксели → рабочий стол ---------------- */
+function drawMosaic(blk){
+  const w = Math.max(1, Math.ceil(vw/blk)), h = Math.max(1, Math.ceil(vh/blk));
+  if(mosaic.width !== w || mosaic.height !== h){ mosaic.width = w; mosaic.height = h; }
+  mctx.imageSmoothingEnabled = true; mctx.imageSmoothingQuality = 'high';
+  // кадр — как на экране в конце падения (crop комнаты, «cover» по вьюпорту)
+  const qw = Qend[1][0] - Qend[0][0], qh = Qend[2][1] - Qend[1][1], k = qw/CROP[2];
+  const sx = CROP[0] + (qw - vw)/2/k, sy = CROP[1] + (qh - vh)/2/k;
+  mctx.fillStyle = '#000'; mctx.fillRect(0, 0, w, h);
+  if(roomReady) mctx.drawImage(roomC, sx, sy, vw/k, vh/k, 0, 0, w, h);
+}
+const BLOCKS = [1, 2, 4, 8, 16, 32, 64];
+function prepOS(e){
+  osE = e;
+  const a = clamp(e/.55, 0, 1), step = Math.min(BLOCKS.length-1, Math.floor(a*BLOCKS.length));
+  if(e < 1){ mosaic.style.display = 'block'; drawMosaic(BLOCKS[step]); mosaic.style.opacity = e < .55 ? 1 : (1 - Math.floor((e-.55)/.45*4)/4); }
+  else mosaic.style.display = 'none';
+  taskbar.classList.toggle('up', e > .6);
+  if(e > .55) showIcons(); else hideIcons();
+}
+
+function startDive(){
+  if(state !== 'ready') return;
+  hint.classList.remove('on'); scene.classList.remove('hot'); SFX.dive();
+  if(reduced){ dive = 1; applyCamera(); enterOS(); prepOS(1); state = 'inside'; return; }
+  state = 'dive';
+}
+function enterOS(){
+  os.classList.add('on'); os.setAttribute('aria-hidden', 'false'); layoutOS();
+  scene.style.visibility = 'hidden'; hint.style.visibility = 'hidden'; $('corner').hidden = true;
+  fx.classList.toggle('flick', !reduced); SFX.hum(true);
+}
+function leaveOS(){
+  if(state !== 'inside') return;
+  closeAll(); closeMenu(); SFX.close(); SFX.hum(false); Player.stop();
+  if(reduced){ exitToScene(); dive = 0; applyCamera(); toReady(); return; }
+  state = 'osout';
+}
+function exitToScene(){
+  os.classList.remove('on'); os.setAttribute('aria-hidden', 'true'); taskbar.classList.remove('up'); hideIcons(); mosaic.style.display = 'none';
+  scene.style.visibility = 'visible'; hint.style.visibility = 'visible'; $('corner').hidden = false; fx.classList.remove('flick');
+}
 
 /* ---------------- окна ---------------- */
 const winsEl = $('wins'), tasksEl = $('tasks');
-const open = {}; let z = 10, cascade = 0;
-function focusWin(id){ if(!open[id]) return; open[id].el.style.zIndex = ++z;
+const open = {}; let z = 10, cascade = 0, activeId = null;
+const tbH = () => parseFloat(getComputedStyle(root).getPropertyValue('--tb')) || 40;
+function focusWin(id){ if(!open[id]) return; open[id].el.style.zIndex = ++z; activeId = id;
   Object.keys(open).forEach(k => { open[k].el.classList.toggle('inactive', k !== id); open[k].task.classList.toggle('act', k === id); }); }
 function openWin(id){
   if(open[id]){ focusWin(id); return; }
@@ -689,9 +913,8 @@ function openWin(id){
   const body = el.querySelector('.body');
   const narrow = innerWidth < 640, W = Math.round(narrow ? innerWidth - 16 : Math.min(cfg.w, innerWidth - 32));
   el.style.width = W + 'px';
-  const H = innerHeight - parseFloat(getComputedStyle(root).getPropertyValue('--tb'));
+  const H = innerHeight - tbH();
   body.style.maxHeight = (H - (narrow ? 48 : 96)) + 'px';
-  const cleanup = (APPS[cfg.type] || APPS.html)(body, cfg, id) || null;
   winsEl.appendChild(el);
   const off = (cascade++ % 6)*24;
   const left = narrow ? 8 : Math.round(clamp(innerWidth/2 - W/2 + off - 60, 8, innerWidth - W - 8));
@@ -699,16 +922,19 @@ function openWin(id){
   el.style.left = left + 'px'; el.style.top = top + 'px';
   const task = document.createElement('button'); task.type = 'button'; task.className = 'task'; task.textContent = cfg.title;
   task.addEventListener('click', () => { SFX.click(); focusWin(id); }); tasksEl.appendChild(task);
-  open[id] = {el, task, cleanup};
+  open[id] = {el, task, cleanup:null};
+  focusWin(id);
+  open[id].cleanup = (APPS[cfg.type] || APPS.html)(body, cfg, id) || null;
   el.addEventListener('pointerdown', () => focusWin(id));
   el.querySelector('.x').addEventListener('click', e => { e.stopPropagation(); closeWin(id); });
   dragify(el, el.querySelector('.tbar'));
-  focusWin(id); SFX.open();
+  SFX.open();
   if(cfg.effect === 'glitch') glitch();
 }
+function topWin(){ const ids = Object.keys(open); return ids.length ? ids.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b) : null; }
 function closeWin(id){ const w = open[id]; if(!w) return; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; SFX.close();
-  const rest = Object.keys(open); if(rest.length) focusWin(rest.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b)); }
-function closeAll(){ Object.keys(open).forEach(id => { const w = open[id]; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; }); }
+  activeId = null; const t = topWin(); if(t) focusWin(t); }
+function closeAll(){ Object.keys(open).forEach(id => { const w = open[id]; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; }); activeId = null; }
 function dragify(el, handle){
   let sx, sy, ox, oy, on = false;
   handle.addEventListener('pointerdown', e => { if(e.target.closest('.x')) return; on = true; sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop; handle.setPointerCapture(e.pointerId); e.preventDefault(); });
@@ -730,6 +956,70 @@ function glitch(){
 }
 
 /* =====================================================================
+   РЕКОРДЫ
+   ===================================================================== */
+const Scores = {
+  key: 'bany-os-scores-v1',
+  local(){ const d = store.get(this.key, null); if(d) return d;
+    const s = {}; Object.keys(C.leaderboard.games).forEach(g => s[g] = (C.leaderboard.seed[g] || []).map(([name, score]) => ({name, score, date:'2026-01-01'}))); return s; },
+  async top(game){
+    const ep = C.leaderboard.endpoint;
+    if(ep){ try { const r = await fetch(ep + (ep.includes('?') ? '&' : '?') + 'game=' + encodeURIComponent(game)); if(r.ok) return (await r.json()).sort((a,b) => b.score - a.score).slice(0, C.leaderboard.size); } catch(e){} }
+    return (this.local()[game] || []).slice().sort((a,b) => b.score - a.score).slice(0, C.leaderboard.size);
+  },
+  async add(game, name, score){
+    const entry = {name, score, date: new Date().toISOString().slice(0,10)};
+    const d = this.local(); (d[game] = d[game] || []).push(entry); d[game].sort((a,b) => b.score - a.score); d[game] = d[game].slice(0, 50); store.set(this.key, d);
+    const ep = C.leaderboard.endpoint;
+    if(ep){ try { await fetch(ep, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({game, name, score})}); } catch(e){} }
+    return entry;
+  }
+};
+function lbTable(list, me){
+  const isMe = e => me && e.name === me.name && e.score === me.score && e.date === me.date;
+  let marked = false;
+  return '<table class="lb">' + (list.length ? list.map((e, i) => { const m = !marked && isMe(e); if(m) marked = true;
+    return `<tr${m ? ' class="me"' : ''}><td>${i+1}.</td><td>${esc(e.name)}</td><td>${e.score}</td></tr>`; }).join('') : '<tr><td></td><td>пока пусто</td><td></td></tr>') + '</table>';
+}
+// экран «игра окончена»: имя → сохранить → таблица. restart — функция новой игры
+function gameOver(wrap, game, score, restart, title){
+  const g = document.createElement('div'); g.className = 'gover';
+  g.innerHTML = `<h2>${esc(title || 'ИГРА ОКОНЧЕНА')}</h2><p>СЧЁТ: <b style="color:var(--hi)">${score}</b></p>
+    <input maxlength="10" aria-label="Твоё имя" placeholder="ИМЯ"><div><button class="btn" type="button" data-a="save">СОХРАНИТЬ</button><button class="btn" type="button" data-a="again">ЕЩЁ РАЗ</button></div>`;
+  wrap.appendChild(g);
+  const inp = g.querySelector('input'); inp.value = store.get('bany-os-name', '');
+  let saved = false;
+  const finish = async () => { if(saved) return; saved = true;
+    const name = (inp.value.trim() || 'ГОСТЬ').toUpperCase().slice(0, 10); store.set('bany-os-name', name);
+    const me = await Scores.add(game, name, score), list = await Scores.top(game);
+    g.innerHTML = `<h2>${esc(C.leaderboard.games[game])}: РЕКОРДЫ</h2>${lbTable(list, me)}<div><button class="btn" type="button" data-a="again">ЕЩЁ РАЗ</button><button class="btn" type="button" data-a="lb">ВСЕ РЕКОРДЫ</button></div>`;
+    SFX.coin();
+  };
+  g.addEventListener('click', e => { const a = e.target.closest('[data-a]'); if(!a) return;
+    if(a.dataset.a === 'save') finish(); else if(a.dataset.a === 'again'){ g.remove(); restart(); } else openWin('scores'); });
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if(e.key === 'Enter') finish(); });
+  if(matchMedia('(pointer:fine)').matches) setTimeout(() => inp.focus(), 30);
+  return g;
+}
+// canvas игры с целым масштабом пикселей (по ширине и высоте окна)
+function gameCanvas(parent, w, h, maxCss, maxCssH){
+  const dpr = window.devicePixelRatio || 1, cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.className = 'px';
+  const s = Math.max(1, Math.floor(Math.min(maxCss/w, (maxCssH || 1e9)/h)*dpr))/dpr;
+  cv.style.width = w*s + 'px'; cv.style.height = h*s + 'px'; parent.appendChild(cv); return cv;
+}
+// кнопки под игрой, с автоповтором при удержании
+function pad(parent, keys){
+  const p = document.createElement('div'); p.className = 'pad'; parent.appendChild(p);
+  keys.forEach(([label, fn, repeat]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; p.appendChild(b);
+    let iv = null; const stop = () => { clearInterval(iv); iv = null; };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); fn(); if(repeat){ stop(); iv = setInterval(fn, 110); } });
+    ['pointerup','pointerleave','pointercancel'].forEach(t => b.addEventListener(t, stop)); });
+  return p;
+}
+const bodyAvail = body => body.clientWidth - 24;
+const bodyAvailH = (body, extra) => parseFloat(body.style.maxHeight) - extra;
+
+/* =====================================================================
    APPS — содержимое окон
    ===================================================================== */
 const APPS = {
@@ -748,10 +1038,12 @@ const APPS = {
     const inp = line.querySelector('input'), hist = []; let hi = 0;
     const print = (s, cls) => { const d = document.createElement('div'); if(cls) d.className = cls; d.textContent = s; out.appendChild(d); body.scrollTop = body.scrollHeight; };
     const cmds = Object.assign({
-      help: () => 'Команды: ' + Object.keys(cmds).sort().join(', ') + '\nopen <окно>: ' + Object.keys(C.windows).join(', '),
+      help: () => 'Команды: ' + Object.keys(cmds).sort().join(', ') + '\nopen <окно>: ' + Object.keys(C.windows).filter(k => !k.includes(':')).join(', '),
       date: () => new Date().toLocaleString('ru-RU'),
       clear: () => { out.textContent = ''; return null; },
-      open: a => C.windows[a] ? (openWin(a), 'Запускаю ' + a + '...') : 'Нет такого окна. Варианты: ' + Object.keys(C.windows).join(', '),
+      open: a => C.windows[a] ? (openWin(a), 'Запускаю ' + a + '...') : 'Нет такого окна. Набери help.',
+      play: a => { Player.play(a || 'theme'); return 'Играет: ' + (Player.current ? Player.current.title : '—') + '. Треки: ' + Player.tracks.map(t => t.id).join(', '); },
+      stop: () => { Player.stop(); return 'Тишина.'; },
       exit: () => { setTimeout(leaveOS, 300); return 'Выключение...'; }
     }, C.terminal.commands);
     print(C.terminal.greeting);
@@ -769,32 +1061,32 @@ const APPS = {
   },
 
   music(body){
-    body.innerHTML = '<canvas class="screen px" width="128" height="40"></canvas><p style="margin:12px 0 4px">TRACK 01 — <span class="muted">BANY_THEME.MOD</span></p><button class="btn" type="button">▶ ИГРАТЬ</button>';
-    const cv = body.querySelector('canvas'), x = cv.getContext('2d'), btn = body.querySelector('button');
-    // простая чиптюн-петля: [нота в полутонах от A4, длительность в шагах]
-    const MEL = [0,3,7,12, 10,7,3,7, -2,2,5,10, 8,5,2,5], BASS = [-24,-24,-26,-26];
-    let playing = false, timer = null, step = 0, an = null, bars = new Array(16).fill(0), viz = null;
-    const hz = n => 440*Math.pow(2, n/12);
-    function tick(){ if(!SFX.ctx) return; const n = MEL[step % 16]; SFX.tone(hz(n), .16, 'square', .09); if(step % 4 === 0) SFX.tone(hz(BASS[(step/4|0) % 4]), .4, 'triangle', .2);
-      bars = bars.map((b,i) => Math.max(b - 2, (i === (n + 12) % 16 ? 10 : 0) + Math.floor(rnd(step*16 + i)*4))); step++; }
-    function draw(){ x.fillStyle = '#020503'; x.fillRect(0,0,128,40);
-      bars.forEach((b,i) => { for(let k=0;k<b;k++){ x.fillStyle = k > 8 ? C.colors.accent : k > 5 ? C.colors.hi : C.colors.phos; x.fillRect(4 + i*7 + 1, 34 - k*3, 5, 2); } });
-      x.fillStyle = C.colors.dim; x.fillRect(0, 37, 128, 1); }
-    draw();
-    btn.addEventListener('click', () => { SFX.init(); playing = !playing; btn.textContent = playing ? '■ СТОП' : '▶ ИГРАТЬ';
-      clearInterval(timer); clearInterval(viz);
-      if(playing){ timer = setInterval(tick, 150); viz = setInterval(draw, 100); } else { bars.fill(0); draw(); } });
-    return () => { clearInterval(timer); clearInterval(viz); };
+    body.innerHTML = '<canvas class="screen px" width="128" height="40"></canvas><p style="margin:12px 0 4px" class="now"></p><div><button class="btn" type="button" data-a="play"></button><button class="btn" type="button" data-a="next">ДАЛЬШЕ &gt;&gt;</button></div><h3>ТРЕКИ</h3><ul class="rows tracks"></ul>';
+    const cv = body.querySelector('canvas'), x = cv.getContext('2d'), now = body.querySelector('.now'), playB = body.querySelector('[data-a=play]'), ul = body.querySelector('.tracks');
+    Player.tracks.forEach(t => { const li = document.createElement('li'); li.dataset.id = t.id; li.innerHTML = `<b>${esc(t.title)}</b><span class="muted">${esc(t.author)}</span>`; ul.appendChild(li); });
+    const sync = () => { const c = Player.current; now.innerHTML = c ? `${Player.playing ? '▶' : '■'} ${esc(c.title)} — <span class="muted">${esc(c.author)}</span>` : '<span class="muted">Выбери трек</span>';
+      playB.textContent = Player.playing ? '■ СТОП' : '▶ ИГРАТЬ'; ul.querySelectorAll('li').forEach(li => li.classList.toggle('on', !!c && Player.playing && li.dataset.id === c.id)); };
+    ul.addEventListener('click', e => { const li = e.target.closest('li'); if(li){ SFX.click(); Player.play(li.dataset.id); } });
+    playB.addEventListener('click', () => { SFX.init(); Player.playing ? Player.stop() : Player.play(Player.current ? Player.current.id : 'theme'); });
+    body.querySelector('[data-a=next]').addEventListener('click', () => Player.next());
+    Player.listeners.add(sync); sync();
+    const data = new Uint8Array(32);
+    const draw = () => { x.fillStyle = '#020503'; x.fillRect(0,0,128,40); const an = Player.playing && Player.analyser();
+      if(an) an.getByteFrequencyData(data);
+      for(let i=0;i<16;i++){ const v = an ? Math.floor(data[i+1]/255*11) : 0; for(let k=0;k<v;k++){ x.fillStyle = k > 8 ? COL.accent : k > 5 ? COL.hi : COL.phos; x.fillRect(4 + i*7 + 1, 34 - k*3, 5, 2); } }
+      x.fillStyle = COL.dim; x.fillRect(0, 37, 128, 1); };
+    draw(); const iv = setInterval(draw, 1000/T.fps);
+    return () => { clearInterval(iv); Player.listeners.delete(sync); };
   },
 
-  camera(body){
-    body.classList.add('flush'); body.innerHTML = '<canvas class="screen px" width="160" height="120"></canvas>';
+  room(body){
+    body.classList.add('flush'); body.innerHTML = '<canvas class="screen" width="512" height="512"></canvas>';
     const cv = body.querySelector('canvas'), x = cv.getContext('2d');
-    const draw = () => { x.imageSmoothingEnabled = true; x.drawImage(roomC, 112, 120, 800, 600, 0, 0, 160, 120);
-      x.fillStyle = 'rgba(0,0,0,.25)'; for(let y=0;y<120;y+=2) x.fillRect(0, y, 160, 1);
+    const draw = () => { x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(roomC, 0, 0, 512, 512);
       const d = new Date(), s = [d.getHours(), d.getMinutes(), d.getSeconds()].map(v => String(v).padStart(2,'0')).join(':');
-      if(Math.floor(Date.now()/500) % 2){ x.fillStyle = C.colors.accent; x.fillRect(4, 4, 4, 4); }
-      text(x, 'REC', 11, 4, C.colors.accent); text(x, 'CAM 01', 160 - 26, 4, '#ffffff'); text(x, s, 4, 120 - 9, '#ffffff'); };
+      x.save(); x.scale(3, 3);
+      if(Math.floor(Date.now()/500) % 2){ x.fillStyle = COL.accent; x.fillRect(4, 4, 4, 4); }
+      text(x, 'REC', 11, 4, COL.accent); text(x, 'CAM 01', 170 - 26, 4, '#ffffff'); text(x, s, 4, 170 - 9, '#ffffff'); x.restore(); };
     draw(); const iv = setInterval(draw, 1000/T.fps); return () => clearInterval(iv);
   },
 
@@ -819,14 +1111,263 @@ const APPS = {
     const iv = setInterval(() => { p = Math.min(100, p + 8 + Math.floor(Math.random()*10)); bar.style.width = (Math.floor(p/4)*4) + '%'; if(p >= 100){ clearInterval(iv); list(); } }, 120);
     if(reduced){ bar.style.width = '100%'; list(); }
     return () => clearInterval(iv);
-  }
+  },
+
+  scores(body){
+    const games = C.leaderboard.games;
+    body.innerHTML = '<div class="tabs"></div><div class="lbw"></div><p class="muted" style="margin-top:12px"></p>';
+    body.querySelector('p.muted').textContent = C.leaderboard.endpoint ? 'Общая таблица для всех игроков.' : 'Рекорды хранятся в этом браузере. Побей рекорд BANY!';
+    const tabs = body.querySelector('.tabs'), w = body.querySelector('.lbw');
+    const show = async g => { tabs.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.g === g)); w.innerHTML = lbTable(await Scores.top(g)); };
+    Object.entries(games).forEach(([g, name]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.dataset.g = g; b.textContent = name; b.addEventListener('click', () => show(g)); tabs.appendChild(b); });
+    show(Object.keys(games)[0]);
+  },
+
+  tetris: (body, cfg, id) => Tetris(body, cfg, id),
+  racer: (body, cfg, id) => Racer(body, cfg, id),
+  solitaire: (body, cfg, id) => Solitaire(body, cfg, id)
 };
+
+/* =====================================================================
+   ИГРА: ТЕТРИС
+   ===================================================================== */
+function Tetris(body, cfg, id){
+  const BW = 10, BH = 20, S = 8, OX = 4, OY = 4;
+  const wrap = document.createElement('div'); wrap.className = 'game'; body.appendChild(wrap);
+  const cv = gameCanvas(wrap, 128, 168, bodyAvail(body), bodyAvailH(body, 70)), x = cv.getContext('2d');
+  const SH = [ [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], [[1,1],[1,1]], [[0,1,0],[1,1,1],[0,0,0]], [[0,1,1],[1,1,0],[0,0,0]],
+               [[1,1,0],[0,1,1],[0,0,0]], [[1,0,0],[1,1,1],[0,0,0]], [[0,0,1],[1,1,1],[0,0,0]] ];
+  const rot = m => m[0].map((_, i) => m.map(r => r[i]).reverse());
+  let board, cur, next, bag, score, lines, level, acc, over, paused, clearing, raf, last;
+  const refill = () => { bag = [0,1,2,3,4,5,6]; for(let i=6;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [bag[i],bag[j]] = [bag[j],bag[i]]; } };
+  const take = () => { if(!bag.length) refill(); const t = bag.pop(); return {t, m: SH[t].map(r => r.slice()), x: t === 1 ? 4 : 3, y: t === 0 ? -1 : 0}; };
+  const hit = (p, m = p.m, ox = p.x, oy = p.y) => m.some((r, j) => r.some((v, i) => v && (ox+i < 0 || ox+i >= BW || oy+j >= BH || (oy+j >= 0 && board[oy+j][ox+i]))));
+  function reset(){ board = Array.from({length:BH}, () => new Array(BW).fill(0)); refill(); cur = take(); next = take(); score = lines = level = 0; acc = 0; over = false; paused = false; clearing = null;
+    if(cfg.music) Player.play(cfg.music, id); }
+  function lock(){
+    cur.m.forEach((r, j) => r.forEach((v, i) => { if(v && cur.y+j >= 0) board[cur.y+j][cur.x+i] = cur.t + 1; }));
+    const full = []; board.forEach((r, j) => { if(r.every(v => v)) full.push(j); });
+    if(full.length){ clearing = {rows: full, t: 0}; SFX.coin(); } else { SFX.tone(220, .04, 'square', .1); spawn(); }
+  }
+  function spawn(){ cur = next; next = take(); if(hit(cur)){ over = true; SFX.boom(); Player.stopIf(id); gameOver(wrap, 'tetris', score, reset); } }
+  const live = () => !over && !paused && !clearing && activeId === id;
+  const move = dx => { if(!live()) return; if(!hit(cur, cur.m, cur.x + dx)){ cur.x += dx; SFX.blip(); } };
+  const turn = () => { if(!live()) return; const m = rot(cur.m); for(const k of [0,-1,1,-2,2]) if(!hit(cur, m, cur.x + k)){ cur.m = m; cur.x += k; SFX.blip(); return; } };
+  const soft = () => { if(!live()) return; if(!hit(cur, cur.m, cur.x, cur.y + 1)){ cur.y++; score += 1; acc = 0; } else lock(); };
+  const hard = () => { if(!live()) return; let n = 0; while(!hit(cur, cur.m, cur.x, cur.y + 1)){ cur.y++; n++; } score += n*2; lock(); };
+  function block(px, py, t, ghost){
+    if(ghost){ x.fillStyle = COL.dim; x.fillRect(px, py, S, 1); x.fillRect(px, py+S-1, S, 1); x.fillRect(px, py, 1, S); x.fillRect(px+S-1, py, 1, S); return; }
+    x.fillStyle = COL.phos; x.fillRect(px, py, S, S);
+    x.fillStyle = COL.hi; x.fillRect(px, py, S-1, 1); x.fillRect(px, py, 1, S-1);
+    x.fillStyle = COL.dim; x.fillRect(px+1, py+S-1, S-1, 1); x.fillRect(px+S-1, py+1, 1, S-1);
+    // у каждой фигуры свой узор внутри, как на Game Boy
+    x.fillStyle = COL.mid;
+    if(t === 0) x.fillRect(px+3, py+3, 2, 2); else if(t === 1){ x.fillRect(px+2, py+2, 4, 1); x.fillRect(px+2, py+5, 4, 1); x.fillRect(px+2, py+2, 1, 4); x.fillRect(px+5, py+2, 1, 4); }
+    else if(t === 2) x.fillRect(px+2, py+2, 4, 4); else if(t === 3){ x.fillRect(px+2, py+2, 1, 1); x.fillRect(px+5, py+5, 1, 1); x.fillRect(px+3, py+3, 2, 2); }
+    else if(t === 4){ x.fillRect(px+2, py+5, 4, 1); } else if(t === 5){ x.fillRect(px+2, py+2, 1, 4); } else { x.fillRect(px+5, py+2, 1, 4); }
+  }
+  function draw(){
+    x.fillStyle = '#020503'; x.fillRect(0, 0, 128, 168);
+    x.fillStyle = COL.phos; x.fillRect(OX-2, OY-2, BW*S+4, 1); x.fillRect(OX-2, OY+BH*S+1, BW*S+4, 1); x.fillRect(OX-2, OY-2, 1, BH*S+4); x.fillRect(OX+BW*S+1, OY-2, 1, BH*S+4);
+    x.fillStyle = '#0c1f12'; for(let j=0;j<BH;j++) for(let i=0;i<BW;i++) x.fillRect(OX + i*S + 3, OY + j*S + 3, 1, 1);
+    board.forEach((r, j) => r.forEach((v, i) => { if(v) block(OX + i*S, OY + j*S, v - 1); }));
+    if(clearing && Math.floor(clearing.t/60) % 2 === 0){ x.fillStyle = COL.hi; clearing.rows.forEach(j => x.fillRect(OX, OY + j*S, BW*S, S)); }
+    if(!over && !clearing){
+      let gy = cur.y; while(!hit(cur, cur.m, cur.x, gy + 1)) gy++;
+      cur.m.forEach((r, j) => r.forEach((v, i) => { if(v && gy+j >= 0) block(OX + (cur.x+i)*S, OY + (gy+j)*S, cur.t, true); }));
+      cur.m.forEach((r, j) => r.forEach((v, i) => { if(v && cur.y+j >= 0) block(OX + (cur.x+i)*S, OY + (cur.y+j)*S, cur.t); }));
+    }
+    const sx = 92; text(x, 'NEXT', sx, 6, COL.mid);
+    next.m.forEach((r, j) => r.forEach((v, i) => { if(v){ x.fillStyle = COL.phos; x.fillRect(sx + i*6, 16 + j*6, 5, 5); } }));
+    text(x, 'SCORE', sx, 50, COL.mid); text(x, score, sx, 58, COL.hi);
+    text(x, 'LINES', sx, 72, COL.mid); text(x, lines, sx, 80, COL.hi);
+    text(x, 'LEVEL', sx, 94, COL.mid); text(x, level, sx, 102, COL.hi);
+    text(x, 'SPACE', sx, 130, COL.dim); text(x, 'DROP', sx, 138, COL.dim);
+    if(!over && (paused || activeId !== id)){ x.fillStyle = 'rgba(2,5,3,.8)'; x.fillRect(OX, OY + 70, BW*S, 20); textC(x, 'PAUSE', OX + BW*S/2, OY + 78, COL.hi); }
+  }
+  function frame(now){
+    const dt = Math.min(100, now - (last || now)); last = now;
+    if(clearing){ clearing.t += dt; if(clearing.t > 360){ const n = clearing.rows.length;
+      board = board.filter((_, j) => !clearing.rows.includes(j)); while(board.length < BH) board.unshift(new Array(BW).fill(0));
+      score += [0, 40, 100, 300, 1200][n]*(level + 1); lines += n; level = Math.floor(lines/10); clearing = null; spawn(); } }
+    else if(live()){ acc += dt; const iv = Math.max(70, 800 - level*70); if(acc >= iv){ acc = 0; if(!hit(cur, cur.m, cur.x, cur.y + 1)) cur.y++; else lock(); } }
+    draw(); raf = requestAnimationFrame(frame);
+  }
+  const onKey = e => { if(activeId !== id || over || e.target.tagName === 'INPUT') return;
+    const k = e.key; let used = true;
+    if(k === 'ArrowLeft' || k === 'a') move(-1); else if(k === 'ArrowRight' || k === 'd') move(1);
+    else if(k === 'ArrowUp' || k === 'w' || k === 'x') turn(); else if(k === 'ArrowDown' || k === 's') soft();
+    else if(k === ' ') hard(); else if(k === 'p') paused = !paused; else used = false;
+    if(used) e.preventDefault(); };
+  addEventListener('keydown', onKey);
+  pad(wrap, [['◀', () => move(-1), true], ['⟳', turn], ['▼', soft, true], ['⤓', hard], ['▶', () => move(1), true]]);
+  reset(); raf = requestAnimationFrame(frame);
+  return () => { cancelAnimationFrame(raf); removeEventListener('keydown', onKey); Player.stopIf(id); };
+}
+
+/* =====================================================================
+   ИГРА: ГОНКИ (вид сверху, три полосы)
+   ===================================================================== */
+function Racer(body, cfg, id){
+  const W = 96, H = 144, RX = 12, LW = 24;
+  const CAR = ["..oooooooo..", ".oRRRRRRRRo.", "oRRLLLLLLRRo", "oRoKKKKKKoRo", "oRoKkkkkKoRo", "oRRRRRRRRRRo", "BoRRRRRRRRoB", "BoRRRRRRRRoB", "oRRRRRRRRRRo",
+               "oRRrrrrrrRRo", "oRRrRRRRrRRo", "oRRrrrrrrRRo", "BoRRRRRRRRoB", "BoRRRRRRRRoB", "oRRRRRRRRRRo", "oRoKKKKKKoRo", ".oRRRRRRRRo.", "..oooooooo.."];
+  const paint = pal => { const c = document.createElement('canvas'); c.width = 12; c.height = CAR.length; const g = c.getContext('2d');
+    CAR.forEach((r, y) => [...r].forEach((ch, x2) => { if(pal[ch]){ g.fillStyle = pal[ch]; g.fillRect(x2, y, 1, 1); } })); return c; };
+  const me = paint({o:'#140a10', R:COL.accent, r:'#a01830', L:'#ff8aa0', K:'#1c1c26', k:'#50506a', B:'#000'});
+  const foes = [paint({o:'#020503', R:COL.phos, r:COL.mid, L:COL.hi, K:'#0c1f12', k:COL.dim, B:'#000'}), paint({o:'#020503', R:COL.mid, r:COL.dim, L:COL.phos, K:'#0c1f12', k:COL.dim, B:'#000'})];
+  const wrap = document.createElement('div'); wrap.className = 'game'; body.appendChild(wrap);
+  const cv = gameCanvas(wrap, W, H, bodyAvail(body), bodyAvailH(body, 70)), x = cv.getContext('2d');
+  let lane, px, cars, road, speed, dist, tick, over, boom, raf, last, acc, spawnCD;
+  const laneX = l => RX + l*LW + 6;
+  function reset(){ lane = 1; px = laneX(1); cars = []; road = 0; speed = 1.6; dist = 0; tick = 0; over = false; boom = 0; acc = 0; spawnCD = 30;
+    if(cfg.music) Player.play(cfg.music, id); }
+  const steer = d => { if(over || activeId !== id) return; const n = clamp(lane + d, 0, 2); if(n !== lane){ lane = n; SFX.blip(); } };
+  function update(){
+    tick++; speed = Math.min(6, 1.6 + tick*.0016); road = (road + speed) % 16; dist += speed;
+    px += clamp(laneX(lane) - px, -3, 3);
+    if(--spawnCD <= 0){ const l = Math.floor(Math.random()*3);
+      // всегда оставляем хотя бы одну свободную полосу
+      const near = cars.filter(c => c.y < 40).map(c => c.l); if(!near.includes(l) && new Set([...near, l]).size < 3) cars.push({l, y: -20, v: .4 + Math.random()*.9, k: Math.floor(Math.random()*2)});
+      spawnCD = Math.max(10, 34 - tick/120) + Math.floor(Math.random()*12); }
+    cars.forEach(c => c.y += speed - c.v); cars = cars.filter(c => c.y < H + 20);
+    const py = H - 28;
+    if(cars.some(c => Math.abs(laneX(c.l) - px) < 10 && Math.abs(c.y - py) < 16)){ over = true; boom = 1; SFX.boom(); Player.stopIf(id);
+      setTimeout(() => gameOver(wrap, 'racer', Math.floor(dist/10), reset), 700); }
+  }
+  function draw(){
+    const off = Math.round(road);
+    // трава с дизерингом
+    for(let y=0;y<H;y+=2) for(let xx=0;xx<W;xx+=2){ x.fillStyle = ((xx >> 1) + ((y - off*2 + 64) >> 1)) % 3 ? '#08180d' : '#0f2a16'; x.fillRect(xx, y, 2, 2); }
+    x.fillStyle = '#121812'; x.fillRect(RX, 0, LW*3, H);
+    for(let y=-16;y<H;y+=8){ x.fillStyle = ((y + 16) >> 3) % 2 ? COL.accent : COL.hi; x.fillRect(RX - 3, y + off, 3, 8); x.fillRect(RX + LW*3, y + off, 3, 8); }
+    x.fillStyle = COL.dim; for(let l=1;l<3;l++) for(let y=-16;y<H;y+=16) x.fillRect(RX + l*LW - 1, y + off, 2, 8);
+    cars.forEach(c => x.drawImage(foes[c.k], laneX(c.l), Math.round(c.y)));
+    const py = H - 28;
+    if(!boom) x.drawImage(me, Math.round(px), py);
+    else { boom++; for(let i=0;i<24;i++){ const a = i/24*Math.PI*2, r = Math.min(20, boom*2) * (0.5 + rnd(i)*.5); x.fillStyle = i % 3 ? COL.accent : COL.hi; x.fillRect(Math.round(px + 6 + Math.cos(a)*r), Math.round(py + 9 + Math.sin(a)*r), 2, 2); } }
+    x.fillStyle = 'rgba(2,5,3,.85)'; x.fillRect(0, 0, W, 9); text(x, 'SCORE ' + Math.floor(dist/10), 2, 2, COL.hi);
+    const kmh = Math.round(speed*40); text(x, kmh + 'KM/H', W - 2 - (String(kmh).length + 4)*4, 2, COL.phos);
+    if(activeId !== id && !over){ x.fillStyle = 'rgba(2,5,3,.8)'; x.fillRect(0, 62, W, 20); textC(x, 'PAUSE', W/2, 70, COL.hi); }
+  }
+  function frame(now){ const dt = Math.min(100, now - (last || now)); last = now;
+    if(!over && activeId === id){ acc += dt; while(acc >= 1000/30){ acc -= 1000/30; if(!over) update(); } }
+    draw(); raf = requestAnimationFrame(frame); }
+  const onKey = e => { if(activeId !== id || e.target.tagName === 'INPUT') return;
+    if(e.key === 'ArrowLeft' || e.key === 'a'){ steer(-1); e.preventDefault(); } else if(e.key === 'ArrowRight' || e.key === 'd'){ steer(1); e.preventDefault(); } };
+  addEventListener('keydown', onKey);
+  cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); steer(e.clientX < r.left + r.width/2 ? -1 : 1); });
+  pad(wrap, [['◀', () => steer(-1)], ['▶', () => steer(1)]]);
+  reset(); raf = requestAnimationFrame(frame);
+  return () => { cancelAnimationFrame(raf); removeEventListener('keydown', onKey); Player.stopIf(id); };
+}
+
+/* =====================================================================
+   ИГРА: СОЛИТЕР (Косынка, по одной карте)
+   ===================================================================== */
+function Solitaire(body, cfg, id){
+  const W = 206, H = 214, CWd = 24, CHt = 32, TOP = 4, TAB = 42;
+  const colX = i => 3 + i*29;
+  const BIG = [["...#...","..###..",".#####.","#######","#######","...#...","..###.."], [".##.##.","#######","#######","#######",".#####.","..###..","...#..."],
+               ["...#...","..###..",".#####.","#######",".#####.","..###..","...#..."], ["..###..","..###..","##.#.##","#######","##.#.##","...#...","..###.."]];
+  const SMALL = [["..#..",".###.","#####","..#..",".###."], [".#.#.","#####","#####",".###.","..#.."], ["..#..",".###.","#####",".###.","..#.."], [".###.",".###.","#####","..#..",".###."]];
+  const RANK = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const red = c => c.s === 1 || c.s === 2;
+  const wrap = document.createElement('div'); wrap.className = 'game'; body.appendChild(wrap);
+  const cv = gameCanvas(wrap, W, H, bodyAvail(body), bodyAvailH(body, 70)), x = cv.getContext('2d');
+  const hud = document.createElement('div'); hud.className = 'hud'; wrap.appendChild(hud);
+  hud.innerHTML = '<span>СЧЁТ <b class="sc">0</b></span><span>ВРЕМЯ <b class="tm">0:00</b></span><button class="btn" type="button" style="margin:0;padding:4px 8px">НОВАЯ ИГРА</button>';
+  hud.querySelector('button').addEventListener('click', () => deal());
+  let stock, waste, found, tab, sel, score, start, won, timer, autoIv;
+  function deal(){
+    const d = []; for(let s=0;s<4;s++) for(let r=1;r<=13;r++) d.push({s, r, up:false});
+    for(let i=d.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [d[i],d[j]] = [d[j],d[i]]; }
+    tab = Array.from({length:7}, (_, i) => { const p = d.splice(0, i+1); p[i].up = true; return p; });
+    stock = d; waste = []; found = [[],[],[],[]]; sel = null; score = 0; start = Date.now(); won = false; clearInterval(autoIv); autoIv = null;
+    wrap.querySelectorAll('.gover').forEach(g => g.remove()); draw();
+  }
+  function offsets(p){ const down = p.filter(c => !c.up).length, up = p.length - down; let du = 9;
+    const room = H - TAB - CHt - 2 - down*3; if(up > 1 && (up-1)*du > room) du = Math.max(3, Math.floor(room/(up-1)));
+    let y = TAB; return p.map(c => { const r = y; y += c.up ? du : 3; return r; }); }
+  function bits(rows, px, py, col){ x.fillStyle = col; rows.forEach((r, j) => [...r].forEach((ch, i) => { if(ch === '#') x.fillRect(px+i, py+j, 1, 1); })); }
+  function card(c, px, py){
+    x.fillStyle = COL.bg; x.fillRect(px, py, CWd, CHt);
+    if(!c.up){ x.fillStyle = COL.dim; x.fillRect(px+1, py+1, CWd-2, CHt-2); x.fillStyle = COL.mid;
+      for(let j=3;j<CHt-3;j+=2) for(let i=3 + (j/2 % 2);i<CWd-3;i+=2) x.fillRect(px+i, py+j, 1, 1); x.fillStyle = COL.phos; x.fillRect(px+2, py+2, CWd-4, 1); return; }
+    x.fillStyle = COL.hi; x.fillRect(px+1, py+1, CWd-2, CHt-2);
+    const ink = red(c) ? COL.accent : COL.bg; text(x, RANK[c.r], px+2, py+2, ink); bits(SMALL[c.s], px+2, py+9, ink); bits(BIG[c.s], px+11, py+15, ink);
+  }
+  function slot(px, py, label){ x.fillStyle = COL.dim; for(let i=0;i<CWd;i+=2){ x.fillRect(px+i, py, 1, 1); x.fillRect(px+i, py+CHt-1, 1, 1); } for(let j=0;j<CHt;j+=2){ x.fillRect(px, py+j, 1, 1); x.fillRect(px+CWd-1, py+j, 1, 1); }
+    if(label) textC(x, label, px + CWd/2, py + 13, COL.dim); }
+  function outline(px, py, w, h){ x.fillStyle = COL.accent; x.fillRect(px-1, py-1, w+2, 1); x.fillRect(px-1, py+h, w+2, 1); x.fillRect(px-1, py-1, 1, h+2); x.fillRect(px+w, py-1, 1, h+2); }
+  function draw(){
+    x.fillStyle = '#020503'; x.fillRect(0, 0, W, H);
+    stock.length ? card(stock[stock.length-1], colX(0), TOP) : slot(colX(0), TOP, 'O');
+    waste.length ? card(waste[waste.length-1], colX(1), TOP) : slot(colX(1), TOP);
+    found.forEach((f, i) => f.length ? card(f[f.length-1], colX(3+i), TOP) : slot(colX(3+i), TOP, 'A'));
+    tab.forEach((p, i) => { if(!p.length) return slot(colX(i), TAB, 'K'); const ys = offsets(p); p.forEach((c, j) => card(c, colX(i), ys[j])); });
+    if(sel){ if(sel.from === 'tab'){ const ys = offsets(tab[sel.col]); outline(colX(sel.col), ys[sel.idx], CWd, ys[ys.length-1] - ys[sel.idx] + CHt); }
+      else if(sel.from === 'waste') outline(colX(1), TOP, CWd, CHt); else outline(colX(3 + sel.f), TOP, CWd, CHt); }
+    hud.querySelector('.sc').textContent = score;
+  }
+  function pick(mx, my){
+    if(my >= TOP && my < TOP + CHt){ for(let i=0;i<7;i++) if(mx >= colX(i) && mx < colX(i) + CWd){ if(i === 0) return {pile:'stock'}; if(i === 1) return {pile:'waste'}; if(i >= 3) return {pile:'found', f:i-3}; } return null; }
+    for(let i=0;i<7;i++){ if(mx < colX(i) || mx >= colX(i) + CWd) continue; const p = tab[i]; if(!p.length) return my >= TAB ? {pile:'tab', col:i, idx:-1} : null;
+      const ys = offsets(p); for(let j=p.length-1;j>=0;j--) if(my >= ys[j] && my < ys[j] + (j === p.length-1 ? CHt : ys[j+1] - ys[j])) return {pile:'tab', col:i, idx:j};
+      return null; }
+    return null;
+  }
+  const selCards = s => s.from === 'tab' ? tab[s.col].slice(s.idx) : s.from === 'waste' ? [waste[waste.length-1]] : [found[s.f][found[s.f].length-1]];
+  function removeSel(s){ if(s.from === 'tab'){ const p = tab[s.col]; p.splice(s.idx); if(p.length && !p[p.length-1].up){ p[p.length-1].up = true; score += 5; } }
+    else if(s.from === 'waste') waste.pop(); else found[s.f].pop(); }
+  function canFound(c, f){ const t = found[f][found[f].length-1]; return t ? t.s === c.s && c.r === t.r + 1 : c.r === 1; }
+  function canTab(c, col){ const p = tab[col], t = p[p.length-1]; return t ? t.up && red(t) !== red(c) && t.r === c.r + 1 : c.r === 13; }
+  function tryMove(s, target){
+    const cs = selCards(s); if(!cs.length || !cs[0]) return false;
+    if(target.pile === 'found'){ if(cs.length !== 1 || (s.from === 'found' && s.f === target.f) || !canFound(cs[0], target.f)) return false; removeSel(s); found[target.f].push(cs[0]); score += s.from === 'found' ? 0 : 10; }
+    else if(target.pile === 'tab'){ if(s.from === 'tab' && s.col === target.col) return false; if(!canTab(cs[0], target.col)) return false;
+      removeSel(s); tab[target.col].push(...cs); score += s.from === 'waste' ? 5 : s.from === 'found' ? -15 : 0; }
+    else return false;
+    score = Math.max(0, score); SFX.tone(700, .04, 'square', .1); checkWin(); return true;
+  }
+  function toFound(s){ for(let f=0;f<4;f++) if(tryMove(s, {pile:'found', f})) return true; return false; }
+  function checkWin(){
+    if(won) return;
+    if(found.every(f => f.length === 13)){ won = true; clearInterval(autoIv); autoIv = null; const sec = Math.max(1, (Date.now() - start)/1000|0); const bonus = sec > 30 ? Math.round(700000/sec/10) : 2000; score += bonus; draw(); SFX.coin();
+      gameOver(wrap, 'solitaire', score, deal, 'ПОБЕДА! БОНУС +' + bonus); return; }
+    // всё открыто — доигрываем сами
+    if(!stock.length && !waste.length && tab.every(p => p.every(c => c.up)) && !autoIv){ autoIv = setInterval(() => {
+      for(let i=0;i<7;i++){ const p = tab[i]; if(p.length && toFound({from:'tab', col:i, idx:p.length-1})){ draw(); return; } } clearInterval(autoIv); autoIv = null; }, 90); }
+  }
+  const at = e => { const r = cv.getBoundingClientRect(); return pick((e.clientX - r.left)/r.width*W, (e.clientY - r.top)/r.height*H); };
+  function click(e){
+    if(won) return;
+    const hitP = at(e);
+    if(!hitP){ sel = null; draw(); return; }
+    if(hitP.pile === 'stock'){ sel = null; if(stock.length){ const c = stock.pop(); c.up = true; waste.push(c); SFX.blip(); } else if(waste.length){ stock = waste.reverse().map(c => (c.up = false, c)); waste = []; score = Math.max(0, score - 100); SFX.tone(300, .08, 'square', .1); } draw(); return; }
+    const cand = hitP.pile === 'waste' ? (waste.length ? {from:'waste'} : null) : hitP.pile === 'found' ? (found[hitP.f].length ? {from:'found', f:hitP.f} : null)
+               : (hitP.idx >= 0 && tab[hitP.col][hitP.idx].up ? {from:'tab', col:hitP.col, idx:hitP.idx} : null);
+    if(sel){
+      // повторный клик по той же карте — отправить в «дом»
+      if(cand && JSON.stringify(cand) === JSON.stringify(sel)){ const s = sel; sel = null; toFound(s); draw(); return; }
+      if(tryMove(sel, hitP)){ sel = null; draw(); return; }
+    }
+    sel = cand; if(cand) SFX.blip(); draw();
+  }
+  cv.addEventListener('click', click);
+  cv.addEventListener('dblclick', e => { const h = at(e); if(!h || won) return;
+    const s = h.pile === 'waste' && waste.length ? {from:'waste'} : h.pile === 'tab' && h.idx >= 0 && h.idx === tab[h.col].length - 1 ? {from:'tab', col:h.col, idx:h.idx} : null;
+    if(s && toFound(s)){ sel = null; draw(); } });
+  timer = setInterval(() => { if(won) return; const s = (Date.now() - start)/1000|0; hud.querySelector('.tm').textContent = Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0'); }, 500);
+  deal();
+  return () => { clearInterval(timer); clearInterval(autoIv); };
+}
 
 /* ---------------- меню ПУСК ---------------- */
 const menu = $('menu'), startBtn = $('start');
 function buildMenu(){
   menu.innerHTML = '';
-  ['about','projects','mail','terminal','readme'].forEach(id => { const ic = C.icons.find(i => i.id === id); if(!ic) return;
+  ['about','projects','mail','terminal','tetris','racer','solitaire','scores','music','readme'].forEach(id => { const ic = C.icons.find(i => i.id === id); if(!ic) return;
     const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
     b.innerHTML = `<span class="mi px" style="background-position:${-ic.icon*16}px 0"></span><span></span>`; b.lastChild.textContent = ic.label;
     b.addEventListener('click', () => { closeMenu(); openWin(id); }); menu.appendChild(b); });
@@ -845,7 +1386,7 @@ setInterval(tickClock, 1000); tickClock();
 
 /* ---------------- клавиатура ---------------- */
 addEventListener('keydown', e => {
-  if(e.key === 'Escape'){ if(!menu.hidden) return closeMenu(); const ids = Object.keys(open); if(ids.length){ closeWin(ids.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b)); } return; }
+  if(e.key === 'Escape'){ if(!menu.hidden) return closeMenu(); const t = topWin(); if(t) closeWin(t); return; }
   if((e.key === 'Enter' || e.key === ' ') && (state === 'ready' || state === 'boot' || state === 'rain') && !e.target.closest('button')){ e.preventDefault(); state === 'ready' ? startDive() : skipIntro(); }
 });
 
@@ -857,16 +1398,17 @@ function loop(now){
   if(state !== 'inside' && state !== 'osin' && state !== 'osout') crtFrame(now);
   if(state === 'dive'){ dive = Math.min(1, dive + dt/T.dive); applyCamera();
     if(dive >= 1){ state = 'osin'; enterOS(); prepOS(0); } }
-  else if(state === 'osin'){ prepOS(Math.min(1, osE + dt/T.zoomOut)); if(osE >= 1) state = 'inside'; }
-  else if(state === 'osout'){ prepOS(Math.max(0, osE - dt/T.zoomOut)); if(osE <= 0){ exitToScene(); state = 'surf'; dive = 1; lastCrt = -1; } }
+  else if(state === 'osin'){ prepOS(Math.min(1, osE + dt/T.mosaic)); if(osE >= 1) state = 'inside'; }
+  else if(state === 'osout'){ prepOS(Math.max(0, osE - dt/T.mosaic)); if(osE <= 0){ exitToScene(); state = 'surf'; dive = 1; lastCrt = -1; } }
   else if(state === 'surf'){ dive = Math.max(0, dive - dt/T.dive); applyCamera(); if(dive <= 0) toReady(); }
+  if(os.classList.contains('on')) heroTick(now);
   requestAnimationFrame(loop);
 }
-addEventListener('resize', () => { layoutScene(); if(os.classList.contains('on')){ layoutOS(); prepOS(osE); } });
-layoutScene(); SFX.set(SFX.on); requestAnimationFrame(loop);
+addEventListener('resize', () => { layoutScene(); if(os.classList.contains('on')) layoutOS(); });
+layoutScene(); SFX.set(SFX.on); drawHero(); requestAnimationFrame(loop);
 
-// для отладки из консоли: BANY.open('about'), BANY.skip()
-window.BANY = { open: openWin, skip: () => { skipIntro(); startDive(); }, config: C };
+// для отладки из консоли: BANY.open('tetris'), BANY.skip()
+window.BANY = { open: openWin, skip: () => { skipIntro(); startDive(); }, player: Player, scores: Scores, config: C };
 })();
 </script>
 </body>

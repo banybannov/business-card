@@ -71,7 +71,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes flick{0%,100%{opacity:1}47%{opacity:.85}48%{opacity:1}}
 /* рабочий стол: точечная сетка-«пол» */
 #desk{position:absolute;left:0;right:0;top:0;bottom:var(--tb);
-  background-image:radial-gradient(var(--dim) 1px,transparent 1.5px);background-size:16px 16px;background-position:8px 8px}
+  background:#000 url(assets/room.png) no-repeat}
 .icon{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--phos);visibility:hidden;width:96px}
 .icon .ico{width:var(--ico);height:var(--ico);background:url(assets/icons.png) no-repeat;background-size:calc(var(--ico) * var(--icount)) var(--ico)}
 .icon .lb{font:var(--t8s)/1.5 var(--title);padding:2px 4px;white-space:nowrap;text-align:center;text-shadow:1px 1px 0 #000;background:var(--bg)}
@@ -81,7 +81,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes pop{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
 
 /* персонаж */
-#hero{position:absolute;z-index:5;cursor:pointer;visibility:hidden}
+#hero,#bubble{display:none!important}
 #hero canvas{display:block;width:100%;height:100%}
 #hero.show{visibility:visible;animation:beam .7s steps(7) both}
 @keyframes beam{0%{clip-path:inset(0 0 100% 0)}100%{clip-path:inset(0 0 0 0)}}
@@ -250,7 +250,7 @@ const CONFIG = {
     line: 220,         // яркая линия ЭЛТ
     unfold: 520,       // раскрытие в комнату
     dive: 1700,        // падение камеры в монитор
-    mosaic: 1300,      // распад комнаты на пиксели и появление рабочего стола
+    mosaic: 600,       // появление рабочего стола после падения
     iconStagger: 60,   // задержка между появлением иконок
     fps: 10,           // анимации в комнате
     rainFps: 12,       // код-дождь
@@ -349,21 +349,14 @@ const CONFIG = {
   // icon — номер картинки в assets/icons.png (слева направо, с нуля):
   // 0 человек, 1 папка, 2 почта, 3 терминал, 4 глобус, 5 музыка, 6 камера, 7 календарь, 8 корзина, 9 вирус,
   // 10 загрузка, 11 документ, 12 блоки, 13 машинка, 14 карты, 15 кубок, 16 монитор, 17 геймпад, 18 корона, 19 пластинка
+  // Первые 4 — столбиком слева, остальные — справа.
   icons: [
     { id:'about',    label:'ОБО МНЕ',    icon:0  },
     { id:'projects', label:'ПРОЕКТЫ',    icon:1  },
-    { id:'tetris',   label:'ТЕТРИС',     icon:12 },
-    { id:'racer',    label:'ГОНКИ',      icon:13 },
-    { id:'solitaire',label:'СОЛИТЕР',    icon:14 },
-    { id:'scores',   label:'РЕКОРДЫ',    icon:15 },
+    { id:'games',    label:'ИГРЫ',       icon:17 },
+    { id:'photos',   label:'ФОТО',       icon:6  },
     { id:'music',    label:'ПЛЕЕР',      icon:5  },
-    { id:'room',     label:'КОМНАТА',    icon:6  },
-    { id:'calendar', label:'КАЛЕНДАРЬ',  icon:7  },
-    { id:'trash',    label:'КОРЗИНА',    icon:8  },
-    { id:'virus',    label:'ВИРУС.EXE',  icon:9  },
-    { id:'readme',   label:'README.TXT', icon:11 },
-    { id:'downloads',label:'ЗАГРУЗКИ',   icon:10 },
-    { id:'web',      label:'ИНТЕРНЕТ',   icon:4  },
+    { id:'scores',   label:'РЕКОРДЫ',    icon:15 },
     { id:'terminal', label:'ТЕРМИНАЛ',   icon:3  },
     { id:'mail',     label:'ПОЧТА',      icon:2  }
   ],
@@ -383,6 +376,12 @@ const CONFIG = {
       <li>Postman / API</li><li>CI/CD</li><li>Telegram Bot API</li></ul>
       <p style="margin-top:16px"><a class="btn" href="#" data-open="mail">НАПИСАТЬ МНЕ</a><a class="btn" href="#" data-open="projects">ПРОЕКТЫ</a></p>` },
 
+    games: { title:'C:\\ИГРЫ', w:420, type:'html', html:`
+      <p><a class="btn" href="#" data-open="tetris">ТЕТРИС</a><a class="btn" href="#" data-open="racer">ГОНКИ</a><a class="btn" href="#" data-open="solitaire">СОЛИТЕР</a></p>
+      <p style="margin-top:12px"><a class="btn" href="#" data-open="scores">РЕКОРДЫ</a></p>` },
+    photos: { title:'C:\\ФОТО', w:520, type:'html', html:`
+      <p><a href="#" data-open="room"><img src="assets/room.png" alt="Комната" style="width:100%;display:block;image-rendering:pixelated"></a></p>
+      <p style="margin-top:8px"><a class="btn" href="#" data-open="room">КОМНАТА LIVE</a><a class="btn" href="#" data-open="trash">КОРЗИНА</a></p>` },
     projects: { title:'C:\\ПРОЕКТЫ', w:520, type:'html', html:`
       <ul class="rows">
         <li><b>CVIUM.BOT</b><span>Телеграм-бот, который за пару минут собирает ATS-резюме с помощью AI.
@@ -818,60 +817,35 @@ C.icons.forEach(ic => {
   b.querySelector('.ico').style.backgroundPosition = `calc(var(--ico) * ${-ic.icon}) 0`;
   b.querySelector('.lb').textContent = ic.label;
   b.addEventListener('click', () => { SFX.click(); openWin(ic.id); });
-  // персонаж поворачивает голову к иконке под курсором
-  b.addEventListener('pointerenter', () => { const c = parseFloat(b.style.left) + parseFloat(b.style.width)/2, h = parseFloat(hero.style.left) + parseFloat(hero.style.width)/2;
-    heroLook = Math.abs(c - h) < 24 ? 0 : c < h ? -1 : 1; drawHero(); });
-  b.addEventListener('pointerleave', () => { heroLook = 0; drawHero(); });
   desk.appendChild(b); iconEls.push(b);
 });
 function showIcons(){ if(iconsShown) return; iconsShown = true;
-  hero.classList.add('show');
   iconEls.forEach((el, i) => { if(reduced) el.classList.add('show'); else el._t = setTimeout(() => el.classList.add('show'), 300 + i*T.iconStagger); });
-  setTimeout(() => say(C.hero.phrases[0]), reduced ? 100 : 900); }
+}
 function hideIcons(){ if(!iconsShown) return; iconsShown = false; hero.classList.remove('show'); bubble.hidden = true;
   iconEls.forEach(el => { clearTimeout(el._t); el.classList.remove('show'); }); }
 
-// Раскладка: персонаж в центре, иконки — по эллипсу вокруг с равным шагом по длине дуги.
-// Размеры иконок и персонажа — целые множители физических пикселей (чёткость на любом devicePixelRatio).
+// Раскладка: фон — твоя комната (тот же кадр, что в конце падения), 4 иконки слева столбиком и 4 справа.
+// Размер иконок — целый множитель физических пикселей (чёткость на любом devicePixelRatio).
 function layoutOS(){
   const dpr = window.devicePixelRatio || 1, W = desk.clientWidth, H = desk.clientHeight, small = W < 640 || H < 560;
   const icoDev = Math.max(1, Math.floor((small ? 40 : 64)*dpr/32))*32, ico = icoDev/dpr;
   root.style.setProperty('--ico', ico + 'px');
-  const bw = small ? 88 : 96, bh = ico + 30;
-  const cxD = W/2, cyD = H/2;
-  let rx = W/2 - bw/2 - 8, ry = H/2 - bh/2 - 10;
-  rx = Math.min(rx, Math.max(ry*1.9, bw*1.6));
-  // персонаж влезает внутрь эллипса
-  const maxH = Math.min(2*ry - bh - 30, (2*rx - bw - 24)*heroC.height/heroC.width, H*.52);
-  const sDev = Math.max(1, Math.floor(maxH*dpr/heroC.height)), s = sDev/dpr;
-  const hw = heroC.width*s, hh = heroC.height*s;
-  Object.assign(hero.style, {width: hw + 'px', height: hh + 'px', left: Math.round(cxD - hw/2) + 'px', top: Math.round(cyD - hh/2) + 'px'});
-  // точки на эллипсе с равным шагом по длине
-  const N = iconEls.length, M = 720, pts = [], len = [0];
-  for(let i=0;i<=M;i++){ const a = -Math.PI/2 + i/M*Math.PI*2; pts.push([cxD + rx*Math.cos(a), cyD + ry*Math.sin(a)]); if(i) len.push(len[i-1] + Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1])); }
-  const L = len[M]; let j = 0;
-  iconEls.forEach((el, k) => { const target = L*k/N; while(len[j+1] < target) j++; const p = pts[j];
-    el.style.width = bw + 'px'; el.style.left = Math.round(p[0] - bw/2) + 'px'; el.style.top = Math.round(p[1] - bh/2) + 'px'; });
-  drawHero();
+  const qw = Qend[1][0] - Qend[0][0], qh = Qend[2][1] - Qend[1][1], k = qw/CROP[2];
+  const sx = CROP[0] + (qw - vw)/2/k, sy = CROP[1] + (qh - vh)/2/k;
+  // на узком экране — вся комната целиком по высоте (иначе видна только спина крупным планом)
+  if(W < H){ desk.style.backgroundSize = 'cover'; desk.style.backgroundPosition = '50% 50%'; }
+  else { desk.style.backgroundSize = 1024*k + 'px'; desk.style.backgroundPosition = -sx*k + 'px ' + -sy*k + 'px'; }
+  const bw = small ? 88 : 96, bh = ico + 30, half = Math.ceil(iconEls.length/2);
+  const gap = Math.max(4, Math.min(28, (H - 24 - half*bh)/(half - 1))), top0 = Math.round((H - half*bh - (half-1)*gap)/2);
+  iconEls.forEach((el, i) => { const right = i >= half, r = right ? i - half : i;
+    el.style.width = bw + 'px'; el.style.left = (right ? W - bw - 12 : 12) + 'px'; el.style.top = Math.round(top0 + r*(bh + gap)) + 'px'; });
 }
 
 /* ---------------- переход: падение → комната рассыпается на пиксели → рабочий стол ---------------- */
-function drawMosaic(blk){
-  const w = Math.max(1, Math.ceil(vw/blk)), h = Math.max(1, Math.ceil(vh/blk));
-  if(mosaic.width !== w || mosaic.height !== h){ mosaic.width = w; mosaic.height = h; }
-  mctx.imageSmoothingEnabled = true; mctx.imageSmoothingQuality = 'high';
-  // кадр — как на экране в конце падения (crop комнаты, «cover» по вьюпорту)
-  const qw = Qend[1][0] - Qend[0][0], qh = Qend[2][1] - Qend[1][1], k = qw/CROP[2];
-  const sx = CROP[0] + (qw - vw)/2/k, sy = CROP[1] + (qh - vh)/2/k;
-  mctx.fillStyle = '#000'; mctx.fillRect(0, 0, w, h);
-  if(roomReady) mctx.drawImage(roomC, sx, sy, vw/k, vh/k, 0, 0, w, h);
-}
-const BLOCKS = [1, 2, 4, 8, 16, 32, 64];
 function prepOS(e){
   osE = e;
-  const a = clamp(e/.55, 0, 1), step = Math.min(BLOCKS.length-1, Math.floor(a*BLOCKS.length));
-  if(e < 1){ mosaic.style.display = 'block'; drawMosaic(BLOCKS[step]); mosaic.style.opacity = e < .55 ? 1 : (1 - Math.floor((e-.55)/.45*4)/4); }
-  else mosaic.style.display = 'none';
+  mosaic.style.display = 'none';
   taskbar.classList.toggle('up', e > .6);
   if(e > .55) showIcons(); else hideIcons();
 }
@@ -1401,7 +1375,6 @@ function loop(now){
   else if(state === 'osin'){ prepOS(Math.min(1, osE + dt/T.mosaic)); if(osE >= 1) state = 'inside'; }
   else if(state === 'osout'){ prepOS(Math.max(0, osE - dt/T.mosaic)); if(osE <= 0){ exitToScene(); state = 'surf'; dive = 1; lastCrt = -1; } }
   else if(state === 'surf'){ dive = Math.max(0, dive - dt/T.dive); applyCamera(); if(dive <= 0) toReady(); }
-  if(os.classList.contains('on')) heroTick(now);
   requestAnimationFrame(loop);
 }
 addEventListener('resize', () => { layoutScene(); if(os.classList.contains('on')) layoutOS(); });

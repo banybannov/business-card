@@ -72,6 +72,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 /* рабочий стол: точечная сетка-«пол» */
 #desk{position:absolute;left:0;right:0;top:0;bottom:var(--tb);
   background:#000 url(assets/room.png) no-repeat}
+#deskbg{position:absolute;pointer-events:none}
 .icon{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;color:var(--phos);visibility:hidden;width:96px}
 .icon .ico{width:var(--ico);height:var(--ico);background:url(assets/icons.png) no-repeat;background-size:calc(var(--ico) * var(--icount)) var(--ico)}
 .icon .ico{box-sizing:content-box;padding:6px;background-color:rgba(5,10,7,.82);background-origin:content-box;border:2px solid var(--dim);box-shadow:3px 3px 0 #000}
@@ -234,6 +235,7 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
 <!-- ЭКРАН 2 -->
 <div id="os" aria-hidden="true">
   <div id="desk">
+    <canvas id="deskbg" class="px" width="1024" height="1024"></canvas>
     <div id="hero" role="button" tabindex="0" aria-label="Это я. Нажми, чтобы поговорить"><canvas class="px"></canvas></div>
     <div id="bubble" hidden></div>
   </div>
@@ -786,6 +788,7 @@ Promise.all([loadImg(C.room.src), loadImg(C.room.screensMask), loadImg(C.room.tw
   roomImg = a; maskS = b; maskT = c; roomReady = !!a; renderRoom(0, true);
 });
 
+const deskBg = $('deskbg'), dctx = deskBg.getContext('2d');
 function renderRoom(now, force){
   if(!roomReady) return;
   const st = Math.floor(now/1000*T.fps);
@@ -806,6 +809,7 @@ function renderRoom(now, force){
     lctx.globalCompositeOperation = 'destination-in'; lctx.drawImage(maskT, 0, 0);
     rctx.drawImage(layer, 0, 0);
   }
+  if(os.classList.contains('on')) dctx.drawImage(roomC, 0, 0);
 }
 
 /* =====================================================================
@@ -982,6 +986,9 @@ function layoutOS(){
   // на узком экране — вся комната целиком по высоте (иначе видна только спина крупным планом)
   if(W < H){ desk.style.backgroundSize = 'cover'; desk.style.backgroundPosition = '50% 50%'; }
   else { desk.style.backgroundSize = 1024*k + 'px'; desk.style.backgroundPosition = -sx*k + 'px ' + -sy*k + 'px'; }
+  // живой фон: та же комната, что в КОМНАТЕ LIVE (экраны и огоньки мигают), ровно поверх статичной картинки
+  const bs = W < H ? Math.max(W, H)/1024 : k, bl = W < H ? (W - 1024*bs)/2 : -sx*k, bt = W < H ? (H - 1024*bs)/2 : -sy*k;
+  Object.assign(deskBg.style, {width: 1024*bs + 'px', height: 1024*bs + 'px', left: bl + 'px', top: bt + 'px'});
   const bw = small ? 96 : 112, bh = ico + 16 + 36, half = Math.ceil(iconEls.length/2);
   root.style.setProperty('--icw', bw + 'px');
   const gap = Math.max(4, Math.min(28, (H - 24 - half*bh)/(half - 1))), top0 = Math.round((H - half*bh - (half-1)*gap)/2);

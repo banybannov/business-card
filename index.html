@@ -90,6 +90,18 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 #bubble{position:absolute;z-index:6;width:max-content;max-width:min(260px,80vw);background:var(--bg);border:2px solid var(--phos);box-shadow:4px 4px 0 #000;padding:8px 10px;
   font:var(--txt)/1.3 var(--body);color:var(--hi);pointer-events:none;transform:translate(-50%,-100%)}
 #bubble::after{content:"";position:absolute;left:calc(50% - 6px);bottom:-8px;width:8px;height:8px;background:var(--bg);border:2px solid var(--phos);border-top:0;border-left:0}
+/* Скрепыш */
+#clip{position:absolute;right:calc(var(--icw, 112px) + 28px);bottom:calc(var(--tb) + 12px);z-index:30;display:none;flex-direction:column;align-items:flex-end;gap:8px}
+#clip.on{display:flex;animation:pop .3s steps(3) both}
+#clip canvas{width:64px;height:104px;cursor:pointer;filter:drop-shadow(3px 3px 0 #000)}
+#clip .say{position:relative;background:#ffffe0;color:#140a10;border:2px solid #000;box-shadow:4px 4px 0 #000;padding:8px 10px;font:var(--txt)/1.25 var(--body);
+  width:max-content;max-width:min(280px,calc(100vw - 96px));-webkit-user-select:text;user-select:text}
+#clip .say[hidden]{display:none}
+#clip .say::after{content:"";position:absolute;right:18px;bottom:-10px;width:10px;height:10px;background:#ffffe0;border:2px solid #000;border-top:0;border-left:0;transform:rotate(45deg)}
+#clip .say input{display:block;width:100%;margin-top:8px;box-sizing:border-box;background:#fff;border:2px solid #000;font:inherit;padding:2px 6px;color:#140a10}
+#clip .say .cx{position:absolute;top:-2px;right:-2px;width:18px;height:18px;border:2px solid #000;background:#ffffe0;font:8px/1 var(--title);cursor:pointer;padding:0}
+#clip .say p{margin:0 18px 0 0}
+@media (max-width:640px){#clip{right:12px}#clip .say{max-width:calc(100vw - 24px)}}
 /* пасхалки */
 #bsod{position:fixed;inset:0;z-index:95;background:#0000aa;color:#fff;display:none;place-items:center;padding:24px;font:var(--txt)/1.4 var(--body);cursor:pointer}
 #bsod.on{display:grid}
@@ -228,6 +240,7 @@ canvas.screen{display:block;width:100%;height:auto;background:#000}
   <div id="wins"></div>
   <div id="menu" hidden role="menu"></div>
   <div id="toast" role="status"></div>
+  <div id="clip" aria-live="polite"><div class="say" hidden><button class="cx" type="button" aria-label="Убрать Скрепыша">X</button><p></p></div><canvas class="px" role="button" tabindex="0" aria-label="Скрепыш. Нажми, чтобы спросить"></canvas></div>
   <div id="taskbar">
     <button id="start" type="button" aria-haspopup="true" aria-expanded="false">ПУСК</button>
     <div id="tasks"></div>
@@ -401,7 +414,7 @@ const CONFIG = {
       <p style="margin-top:12px"><a class="btn" href="#" data-open="scores">РЕКОРДЫ</a></p>` },
     photos: { title:'C:\\ФОТО', w:520, type:'html', html:`
       <p><a href="#" data-open="room"><img src="assets/room.png" alt="Комната" style="width:100%;display:block;image-rendering:pixelated"></a></p>
-      <p style="margin-top:8px"><a class="btn" href="#" data-open="room">КОМНАТА LIVE</a><a class="btn" href="#" data-open="trash">КОРЗИНА</a></p>` },
+      <p style="margin-top:8px"><a class="btn" href="#" data-open="room">КОМНАТА LIVE</a><a class="btn" href="#" data-open="camera">КАМЕРА</a><a class="btn" href="#" data-open="avatar">АВАТАР</a><a class="btn" href="#" data-open="trash">КОРЗИНА</a></p>` },
     projects: { title:'C:\\ПРОЕКТЫ', w:520, type:'html', html:`
       <ul class="rows">
         <li><b>CVIUM.BOT</b><span>Телеграм-бот, который за пару минут собирает ATS-резюме с помощью AI.
@@ -445,6 +458,8 @@ const CONFIG = {
     solitaire: { title:'СОЛИТЕР — КОСЫНКА', w:520, type:'solitaire' },
     scores:    { title:'ТАБЛИЦА РЕКОРДОВ', w:440, type:'scores' },
     secrets:   { title:'АЧИВКИ.EXE', w:460, type:'secrets' },
+    camera:    { title:'КАМЕРА — PIXEL CAM', w:520, type:'camera' },
+    avatar:    { title:'АВАТАР.EXE', w:460, type:'avatar' },
     defender:  { title:'BANY DEFENDER', w:380, type:'defender' },
 
     readme: { title:'README.TXT', w:560, type:'html', html:`
@@ -515,6 +530,73 @@ const CONFIG = {
     }
   },
 
+  // Нейронка (Cloudflare Workers AI, бесплатно). Как включить — worker/README.md.
+  // endpoint — адрес твоего воркера. Пусто — Скрепыш и терминал отвечают заготовками, аватарки выключены.
+  ai: {
+    endpoint: '',
+    clippy: {
+      enabled: true,
+      greeting: 'Привет! Я Скрепыш. Похоже, ты пытаешься посмотреть сайт. Помочь?',
+      // ответы, когда нейронка не подключена или устала
+      offline: [
+        'Я бы ответил, но мой мозг сейчас на перерыве. Попробуй ТЕРМИНАЛ.',
+        'Отличный вопрос! Запишу его в баг-репорт.',
+        'Никита говорит, что всё работает. Я ему верю. Почти.',
+        'Кликни по ИГРАМ, там тетрис. Это я тебе как скрепка говорю.'
+      ],
+      // подсказки при первом открытии окна (без нейронки, лимит не тратят)
+      tips: {
+        projects: 'Похоже, ты смотришь проекты. Загляни сюда ночью.',
+        games:    'Рекорд в тетрисе — 4200. Слабо?',
+        terminal: 'Не пиши sudo. Серьёзно. Ну, или пиши.',
+        photos:   'Тут есть камера. Улыбнись!',
+        mail:     'Никита отвечает быстро. Быстрее меня точно.'
+      },
+      // пиксельная скрепка: буква — цвет из palette, точка — пусто
+      palette: { X:'#b8c4cc', W:'#ffffff', o:'#140a10' },
+      sprite: [
+        "......XXXX......",
+        ".....X....X.....",
+        ".....X....X.....",
+        ".....X....X.....",
+        ".....X....X.....",
+        ".....X....X.....",
+        "...XXX....XXX...",
+        "..oooo....oooo..",
+        "..X..X....X..X..",
+        ".WWWWW...WWWWW..",
+        ".WWooW...WWooW..",
+        ".WWooW...WWooW..",
+        ".WWWWW...WWWWW..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X..X....X..X..",
+        "..X...XXXX...X..",
+        "..X..........X..",
+        "..X..........X..",
+        "..X..........X..",
+        "...XXXXXXXXXX..."
+      ]
+    }
+  },
+
+  // Пиксельная камера (ФОТО → КАМЕРА). Всё считается в браузере, видео никуда не отправляется.
+  // w — ширина кадра в «пикселях», palettes — наборы цветов от тёмного к светлому.
+  camera: {
+    w: 96,
+    palettes: {
+      'ФОСФОР':  ['#050a07','#1d5a2a','#2f8a3e','#7fe08a','#c8ffc8'],
+      'ГЕЙМБОЙ': ['#0f380f','#306230','#8bac0f','#9bbc0f'],
+      'КОМНАТА': ['#140a10','#4a0f1c','#b0283c','#ff7d92','#ffe8ee'],
+      'ЧБ':      ['#000000','#555555','#aaaaaa','#ffffff']
+    }
+  },
+
   // Пасхалки и ачивки. Найденное хранится в браузере посетителя.
   // Проверить ночь или праздник: открой сайт с ?now=2026-04-01T02:00
   eggs: {
@@ -540,7 +622,9 @@ const CONFIG = {
       holiday:   ['ПРАЗДНИК', 'В некоторые дни в проектах лежит особый файл'],
       tetris:    ['ТЕТРИСИСТ', 'Набери 1000 очков в тетрисе'],
       racer:     ['ГОНЩИК', 'Проедь 200 в гонках'],
-      solitaire: ['КОСЫНКА', 'Разложи пасьянс до конца']
+      solitaire: ['КОСЫНКА', 'Разложи пасьянс до конца'],
+      selfie:    ['СЕЛФИ', 'Сделай снимок в пиксельной камере'],
+      clippy:    ['ДРУГ СКРЕПЫША', 'Поболтай со Скрепышем']
     },
     gameGoals: { tetris:1000, racer:200 },   // solitaire — за любую победу
     reward: 'Ты нашёл всё. Напиши мне в Telegram слово БАГОЛОВ, отвечу лично.'
@@ -899,6 +983,7 @@ function layoutOS(){
   if(W < H){ desk.style.backgroundSize = 'cover'; desk.style.backgroundPosition = '50% 50%'; }
   else { desk.style.backgroundSize = 1024*k + 'px'; desk.style.backgroundPosition = -sx*k + 'px ' + -sy*k + 'px'; }
   const bw = small ? 96 : 112, bh = ico + 16 + 36, half = Math.ceil(iconEls.length/2);
+  root.style.setProperty('--icw', bw + 'px');
   const gap = Math.max(4, Math.min(28, (H - 24 - half*bh)/(half - 1))), top0 = Math.round((H - half*bh - (half-1)*gap)/2);
   iconEls.forEach((el, i) => { const right = i >= half, r = right ? i - half : i;
     el.style.width = bw + 'px'; el.style.left = (right ? W - bw - 12 : 12) + 'px'; el.style.top = Math.round(top0 + r*(bh + gap)) + 'px'; });
@@ -921,11 +1006,11 @@ function startDive(){
 function enterOS(){
   os.classList.add('on'); os.setAttribute('aria-hidden', 'false'); layoutOS();
   scene.style.visibility = 'hidden'; hint.style.visibility = 'hidden'; $('corner').hidden = true;
-  fx.classList.toggle('flick', !reduced); SFX.hum(true);
+  fx.classList.toggle('flick', !reduced); SFX.hum(true); Clippy.show();
 }
 function leaveOS(){
   if(state !== 'inside') return;
-  closeAll(); closeMenu(); SFX.close(); SFX.hum(false); Player.stop();
+  closeAll(); closeMenu(); SFX.close(); SFX.hum(false); Player.stop(); Clippy.hide();
   if(reduced){ exitToScene(); dive = 0; applyCamera(); toReady(); return; }
   state = 'osout';
 }
@@ -966,7 +1051,7 @@ function openWin(id){
   dragify(el, el.querySelector('.tbar'));
   SFX.open();
   if(cfg.effect === 'glitch') glitch();
-  Eggs.opened(id);
+  Eggs.opened(id); Clippy.tip(id);
 }
 function topWin(){ const ids = Object.keys(open); return ids.length ? ids.reduce((a,b) => +open[a].el.style.zIndex > +open[b].el.style.zIndex ? a : b) : null; }
 function closeWin(id){ const w = open[id]; if(!w) return; if(w.cleanup) w.cleanup(); w.el.remove(); w.task.remove(); delete open[id]; SFX.close();
@@ -1058,6 +1143,31 @@ const bodyAvail = body => body.clientWidth - 24;
 const bodyAvailH = (body, extra) => parseFloat(body.style.maxHeight) - extra;
 
 /* =====================================================================
+   НЕЙРОНКА — запросы к воркеру (CONFIG.ai.endpoint)
+   ===================================================================== */
+const AI = {
+  on: () => !!C.ai.endpoint,
+  async post(path, data){
+    const r = await fetch(C.ai.endpoint.replace(/\/+$/, '') + path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+    const j = await r.json().catch(() => ({})); if(!r.ok || j.error) throw new Error(j.error || r.status); return j;
+  },
+  chat: (mode, messages) => AI.post('/chat', {mode, messages}).then(j => j.text)
+};
+// перекрасить картинку на canvas в палитру с ретро-растром (матрица Байера 4×4)
+function ditherTo(x, w, h, palette){
+  const hex = c => [1,3,5].map(i => parseInt(c.slice(i, i+2), 16)), P = palette.map(hex), n = P.length, d = x.getImageData(0, 0, w, h), a = d.data;
+  const B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  for(let i = 0; i < a.length; i += 4){ const p = i/4, px = p % w, py = (p / w) | 0;
+    const l = (a[i]*.3 + a[i+1]*.59 + a[i+2]*.11)/255, t = (B[(py & 3)*4 + (px & 3)] + .5)/16 - .5;
+    const k = clamp(Math.round(l*(n - 1) + t), 0, n - 1); a[i] = P[k][0]; a[i+1] = P[k][1]; a[i+2] = P[k][2]; }
+  x.putImageData(d, 0, 0);
+}
+// сохранить canvas картинкой, увеличив пиксели в k раз
+function saveCanvas(cv, name, k){ const big = document.createElement('canvas'); big.width = cv.width*k; big.height = cv.height*k;
+  const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false; bx.drawImage(cv, 0, 0, big.width, big.height);
+  const a = document.createElement('a'); a.download = name; a.href = big.toDataURL('image/png'); a.click(); }
+
+/* =====================================================================
    APPS — содержимое окон
    ===================================================================== */
 const APPS = {
@@ -1073,7 +1183,7 @@ const APPS = {
     const out = document.createElement('div'), line = document.createElement('label'); line.className = 'in';
     line.innerHTML = '<span></span><input autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Команда">';
     line.querySelector('span').textContent = C.terminal.prompt; t.append(out, line);
-    const inp = line.querySelector('input'), hist = []; let hi = 0;
+    const inp = line.querySelector('input'), hist = [], aiHist = []; let hi = 0;
     const print = (s, cls) => { const d = document.createElement('div'); if(cls) d.className = cls; d.textContent = s; out.appendChild(d); body.scrollTop = body.scrollHeight; };
     const cmds = Object.assign({
       help: () => 'Команды: ' + Object.keys(cmds).sort().join(', ') + '\nopen <окно>: ' + Object.keys(C.windows).filter(k => !k.includes(':')).join(', '),
@@ -1088,7 +1198,14 @@ const APPS = {
     inp.addEventListener('keydown', e => {
       if(e.key === 'Enter'){ const v = inp.value.trim(); inp.value = ''; print(C.terminal.prompt + ' ' + v, 'hl'); if(!v) return; hist.push(v); hi = hist.length; SFX.click();
         const [c, ...args] = v.split(/\s+/), f = cmds[c.toLowerCase()];
-        if(f === undefined){ print('Неизвестная команда: ' + c + '. Введи help.', 'er'); SFX.error(); return; }
+        if(f === undefined){
+          if(!AI.on()){ print('Неизвестная команда: ' + c + '. Введи help.', 'er'); SFX.error(); return; }
+          const wait = document.createElement('div'); wait.textContent = '...'; out.appendChild(wait); body.scrollTop = body.scrollHeight;
+          aiHist.push({role:'user', content:v});
+          AI.chat('terminal', aiHist).then(r => { aiHist.push({role:'assistant', content:r}); wait.textContent = r; },
+            () => { aiHist.pop(); wait.className = 'er'; wait.textContent = 'Неизвестная команда: ' + c + '. Введи help.'; SFX.error(); })
+            .then(() => { body.scrollTop = body.scrollHeight; });
+          return; }
         const r = typeof f === 'function' ? f(args.join(' ')) : f; if(r != null) print(r); }
       else if(e.key === 'ArrowUp'){ hi = Math.max(0, hi-1); inp.value = hist[hi] || ''; e.preventDefault(); }
       else if(e.key === 'ArrowDown'){ hi = Math.min(hist.length, hi+1); inp.value = hist[hi] || ''; e.preventDefault(); }
@@ -1115,6 +1232,50 @@ const APPS = {
       x.fillStyle = COL.dim; x.fillRect(0, 37, 128, 1); };
     draw(); const iv = setInterval(draw, 1000/T.fps);
     return () => { clearInterval(iv); Player.listeners.delete(sync); };
+  },
+
+  camera(body){
+    const cfg = C.camera, names = Object.keys(cfg.palettes); let pal = 0, stream = null, raf = 0, dead = false;
+    body.innerHTML = '<div class="game"><canvas class="px screen"></canvas><p class="muted" style="margin:0">Разреши доступ к камере. Видео никуда не отправляется.</p><div></div></div>';
+    const cv = body.querySelector('canvas'), x = cv.getContext('2d', {willReadFrequently:true}), note = body.querySelector('p'), bar = body.querySelector('.game > div');
+    cv.style.width = '100%';
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true;
+    const btn = (t, f) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = t; b.addEventListener('click', () => { SFX.click(); f(b); }); bar.appendChild(b); return b; };
+    btn('ЦВЕТА: ' + names[0], b => { pal = (pal + 1) % names.length; b.textContent = 'ЦВЕТА: ' + names[pal]; });
+    btn('СНИМОК', () => { if(!stream) return; saveCanvas(cv, 'bany-cam.png', 8); SFX.coin(); Eggs.got('selfie'); });
+    function frame(){ if(dead) return;
+      if(v.videoWidth){ const w = cfg.w, h = Math.round(w*v.videoHeight/v.videoWidth); if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+        x.save(); x.translate(w, 0); x.scale(-1, 1); x.drawImage(v, 0, 0, w, h); x.restore();   // зеркально, как в обычной фронталке
+        ditherTo(x, w, h, cfg.palettes[names[pal]]); }
+      raf = requestAnimationFrame(frame); }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ note.textContent = 'Этот браузер не умеет работать с камерой.'; return; }
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:640}}, audio:false}).then(s => {
+      if(dead){ s.getTracks().forEach(t => t.stop()); return; }
+      stream = s; v.srcObject = s; v.play(); note.textContent = 'СНИМОК сохранит картинку себе на устройство.'; frame();
+    }).catch(() => { note.textContent = 'Камера недоступна или доступ запрещён.'; SFX.error(); });
+    return () => { dead = true; cancelAnimationFrame(raf); if(stream) stream.getTracks().forEach(t => t.stop()); };
+  },
+
+  avatar(body){
+    const names = Object.keys(C.camera.palettes); let pal = 0, src = null;
+    body.innerHTML = `<p>Опиши себя, и нейронка нарисует пиксельный аватар.</p>
+      <input class="avin" maxlength="200" placeholder="рыжий кот в наушниках" aria-label="Описание" style="width:100%;box-sizing:border-box;background:var(--panel);border:2px solid var(--dim);color:var(--hi);font:inherit;padding:6px 8px">
+      <p style="margin:8px 0"><button class="btn" type="button" data-a="go">НАРИСОВАТЬ</button><button class="btn" type="button" data-a="pal">ЦВЕТА: ${names[0]}</button><button class="btn" type="button" data-a="save">СКАЧАТЬ</button></p>
+      <p class="muted st"></p><canvas class="px screen" width="64" height="64" style="width:256px;max-width:100%;margin:0 auto;display:none"></canvas>`;
+    const inp = body.querySelector('input'), st = body.querySelector('.st'), cv = body.querySelector('canvas'), x = cv.getContext('2d', {willReadFrequently:true});
+    const draw = () => { if(!src) return; x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, 64, 64); ditherTo(x, 64, 64, C.camera.palettes[names[pal]]); cv.style.display = 'block'; };
+    if(!AI.on()) st.textContent = 'Нейронка пока не подключена (CONFIG.ai.endpoint).';
+    let busy = false;
+    const go = async () => { const q = inp.value.trim(); if(!q || busy) return; if(!AI.on()){ SFX.error(); return; }
+      busy = true; st.textContent = 'Рисую... это займёт несколько секунд.'; SFX.click();
+      try { const j = await AI.post('/avatar', {prompt: q}); src = await loadImg(j.image); if(!src) throw 0; draw(); st.textContent = 'Готово! Меняй цвета или скачивай.'; SFX.coin(); }
+      catch(e){ st.textContent = 'Нейронка устала (кончился дневной лимит?). Попробуй позже.'; SFX.error(); }
+      busy = false; };
+    body.addEventListener('click', e => { const a = e.target.closest('[data-a]'); if(!a) return;
+      if(a.dataset.a === 'go') go();
+      else if(a.dataset.a === 'pal'){ pal = (pal + 1) % names.length; a.textContent = 'ЦВЕТА: ' + names[pal]; draw(); }
+      else if(src){ saveCanvas(cv, 'bany-avatar.png', 8); } });
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if(e.key === 'Enter') go(); });
   },
 
   room(body){
@@ -1483,6 +1644,39 @@ const Eggs = (() => {
       secrets: () => (openWin('secrets'), 'Открываю АЧИВКИ.EXE...'),
       achievements: () => (openWin('secrets'), 'Открываю АЧИВКИ.EXE...')
     }; }
+  };
+})();
+
+/* =====================================================================
+   СКРЕПЫШ — помощник в углу (CONFIG.ai.clippy)
+   ===================================================================== */
+const Clippy = (() => {
+  const K = C.ai.clippy, el = $('clip'), cv = el.querySelector('canvas'), say = el.querySelector('.say'), txt = say.querySelector('p');
+  const S = K.sprite, cx = cv.getContext('2d'); cv.width = S[0].length; cv.height = S.length;
+  S.forEach((row, y) => [...row].forEach((ch, x) => { if(K.palette[ch]){ cx.fillStyle = K.palette[ch]; cx.fillRect(x, y, 1, 1); } }));
+  const hist = [], tipped = new Set(); let gone = false, timer = null, typeIv = null, input = null, talked = 0;
+  function type(s, keep){ clearInterval(typeIv); clearTimeout(timer); say.hidden = false; txt.textContent = ''; let i = 0;
+    typeIv = setInterval(() => { txt.textContent = s.slice(0, ++i); if(i % 3 === 0) SFX.tone(900 + Math.random()*300, .015, 'square', .03); if(i >= s.length) clearInterval(typeIv); }, reduced ? 0 : 22);
+    if(!keep) timer = setTimeout(() => { if(!input) say.hidden = true; }, 7000); }
+  function openChat(){ if(input){ input.focus(); return; }
+    input = document.createElement('input'); input.maxLength = 300; input.placeholder = 'Спроси меня...'; input.setAttribute('aria-label', 'Вопрос Скрепышу'); say.appendChild(input);
+    if(say.hidden) type('Чем помочь?', true); else clearTimeout(timer);
+    input.addEventListener('keydown', async e => { e.stopPropagation(); if(e.key === 'Escape'){ closeChat(); return; } if(e.key !== 'Enter') return;
+      const q = input.value.trim(); if(!q) return; input.value = ''; SFX.click();
+      if(++talked >= 3) Eggs.got('clippy');
+      if(!AI.on()){ type(K.offline[Math.floor(Math.random()*K.offline.length)], true); return; }
+      type('Хм, дай подумать...', true); hist.push({role:'user', content:q});
+      try { const r = await AI.chat('clippy', hist); hist.push({role:'assistant', content:r}); type(r, true); }
+      catch(e){ hist.pop(); type(K.offline[Math.floor(Math.random()*K.offline.length)], true); } });
+    setTimeout(() => input && input.focus(), 30); }
+  function closeChat(){ if(input){ input.remove(); input = null; } say.hidden = true; }
+  cv.addEventListener('click', () => { SFX.click(); openChat(); });
+  cv.addEventListener('keydown', e => { if(e.key === 'Enter') openChat(); });
+  say.querySelector('.cx').addEventListener('click', () => { closeChat(); gone = true; type('Ладно, ухожу. Но я вернусь!'); setTimeout(() => el.classList.remove('on'), 1800); });
+  return {
+    show(){ if(!K.enabled || gone) return; setTimeout(() => { if(state !== 'inside' && state !== 'osin') return; el.classList.add('on'); type(K.greeting); }, 1500); },
+    hide(){ closeChat(); el.classList.remove('on'); gone = false; },
+    tip(id){ if(gone || input || !el.classList.contains('on') || tipped.has(id) || !K.tips[id]) return; tipped.add(id); type(K.tips[id]); }
   };
 })();
 
